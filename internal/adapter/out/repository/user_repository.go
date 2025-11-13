@@ -2,10 +2,13 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"pr-assignment/internal/model"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -49,7 +52,7 @@ func (r *UserRepository) UpdateUserStatus(userId string, newStatus bool) error {
 	return nil
 }
 
-func (r *UserRepository) AddTeam(newTeam model.Team) error {
+func (r *UserRepository) AddTeam(newTeam model.Team, teamId uuid.UUID) error {
 	sql := `
         INSERT INTO users(user_id, username, team_name, is_active)
         VALUES ($1, $2, $3, $4)
@@ -58,7 +61,7 @@ func (r *UserRepository) AddTeam(newTeam model.Team) error {
 
 	for _, member := range newTeam.Members {
 		_, err := r.pool.Exec(r.ctx, sql, member.UserId, member.Username,
-			newTeam.TeamName, member.IsActive)
+			teamId, member.IsActive)
 
 		if err != nil {
 			return fmt.Errorf("error adding team on user: %s %w", member.UserId, err)
@@ -102,4 +105,21 @@ func (r *UserRepository) GetTeam(teamName string) (*model.Team, error) {
 	}
 
 	return &team, nil
+}
+
+func (r *UserRepository) GetTeamNameByUserId(userId string) (string, error) {
+	sql := `
+        SELECT team_name FROM users WHERE id = $1`
+
+	row := r.pool.QueryRow(r.ctx, sql, userId)
+	if errors.Is(row, pgx.ErrNoRows) {
+		return "", model.NewError(model.NOT_FOUND, "team with userId %s not found", userId)
+	}
+
+	var teamName string
+	err := row.Scan(&teamName)
+	if err != nil {
+		return "", fmt.Errorf("error scanning row: %w", err)
+	}
+	return teamName, nil
 }

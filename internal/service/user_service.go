@@ -3,6 +3,8 @@ package service
 import (
 	"pr-assignment/internal/adapter/out/repository"
 	"pr-assignment/internal/model"
+
+	"github.com/google/uuid"
 )
 
 type UserService struct {
@@ -32,10 +34,15 @@ func (s *UserService) AddTeam(team model.Team) error {
 	if res {
 		return model.NewError(model.TEAM_EXISTS, "%s already exists", team.TeamName)
 	}
-	err = s.userRepository.AddTeam(team)
+
+	teamId := uuid.New()
+
+	err = s.userRepository.AddTeam(team, teamId)
 	if err != nil {
 		return err
 	}
+
+	err = s.teamRepository.AddTeam(team, teamId)
 	return nil
 }
 
