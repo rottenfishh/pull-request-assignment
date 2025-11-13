@@ -76,7 +76,7 @@ func (r *PullRequestRepository) CreatePR(ctx context.Context, pr model.PullReque
 	return &pullRequest, nil
 }
 
-func (r *PullRequestRepository) MergePR(ctx context.Context, pullRequestId string, status string, time time.Time) (*model.PullRequest, error) {
+func (r *PullRequestRepository) MergePR(ctx context.Context, pullRequestId string, status model.PRstatus, time time.Time) (*model.PullRequest, error) {
 	sql := `
         UPDATE pull-requests
         SET status = $3, mergedAt = $2

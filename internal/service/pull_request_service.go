@@ -20,13 +20,14 @@ func NewPullRequestService(prRepo *repository.PullRequestRepository, prReviewsRe
 }
 
 func (s *PullRequestService) createPR(ctx context.Context, pullRequest model.PullRequestShort) (*model.PullRequest, error) {
-	pullRequest.Status = "CREATED"
+	pullRequest.Status = model.CREATED
 	pr := model.PullRequest{
 		PullRequestShort:  pullRequest,
 		AssignedReviewers: make([]string, 0),
 		CreatedAt:         time.Now(),
 		MergedAt:          time.Time{},
 	}
+
 	createdPR, err := s.prRepository.CreatePR(ctx, pr)
 	if err != nil {
 		return nil, err
@@ -112,7 +113,7 @@ func (s *PullRequestService) changeReviewer(ctx context.Context, prId string, ol
 }
 
 func (s *PullRequestService) mergePR(ctx context.Context, pullRequestId string) (*model.PullRequest, error) {
-	createdPR, err := s.prRepository.MergePR(ctx, pullRequestId, "MERGED", time.Now())
+	createdPR, err := s.prRepository.MergePR(ctx, pullRequestId, model.MERGED, time.Now())
 
 	if err != nil {
 		return nil, err
