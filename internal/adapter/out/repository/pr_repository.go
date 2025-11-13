@@ -3,8 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log"
 	"pr-assignment/internal/model"
 	"time"
 
@@ -14,25 +12,40 @@ import (
 
 type PullRequestRepository struct {
 	pool *pgxpool.Pool
-	ctx  context.Context
 }
 
-func (r *PullRequestRepository) Init() {
-	var err error
-	r.pool, err = pgxpool.New(r.ctx, "postgres://<username>:<password>@localhost:5432/pull_requests")
+func NewPullRequestRepository(pool *pgxpool.Pool) *PullRequestRepository {
+	return &PullRequestRepository{pool: pool}
+}
+
+func (r *PullRequestRepository) GetPR(ctx context.Context, pullRequestId string) (*model.PullRequest, error) {
+	sql := `
+        SELECT * FROM pr_repository
+        WHERE pr_id = $1`
+
+	row := r.pool.QueryRow(ctx, sql, pullRequestId)
+
+	pullRequest := model.PullRequest{}
+	err := row.Scan(
+		&pullRequest.PullRequestId,
+		&pullRequest.PullRequestName,
+		&pullRequest.AuthorId,
+		&pullRequest.Status,
+		&pullRequest.CreatedAt,
+		&pullRequest.MergedAt)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, model.NewError(model.NOT_FOUND, "NO SUCH RESOURCE")
+	}
 
 	if err != nil {
-		log.Fatal("Unable to connect to database:", err)
+		return nil, err
 	}
 
-	if err := r.pool.Ping(r.ctx); err != nil {
-		log.Fatal("Unable to ping database:", err)
-	}
-
-	fmt.Println("Connected to PostgreSQL database!")
+	return &pullRequest, nil
 }
 
-func (r *PullRequestRepository) CreatePR(pr model.PullRequest) (*model.PullRequest, error) {
+func (r *PullRequestRepository) CreatePR(ctx context.Context, pr model.PullRequest) (*model.PullRequest, error) {
 	sql := `
         INSERT INTO pull_requests(pull_request_id, pull_request_name, 
                                   author_id, status, createdAt, mergedAt)
@@ -43,7 +56,7 @@ func (r *PullRequestRepository) CreatePR(pr model.PullRequest) (*model.PullReque
         `
 
 	pullRequest := model.PullRequest{}
-	err := r.pool.QueryRow(r.ctx, sql, pr.PullRequestId, pr.PullRequestName,
+	err := r.pool.QueryRow(ctx, sql, pr.PullRequestId, pr.PullRequestName,
 		pr.AuthorId, pr.Status, pr.CreatedAt, pr.MergedAt).Scan(
 		&pullRequest.PullRequestId,
 		&pullRequest.PullRequestName,
@@ -55,13 +68,15 @@ func (r *PullRequestRepository) CreatePR(pr model.PullRequest) (*model.PullReque
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, model.NewError(model.PR_EXISTS, "%s already exists", pr.PullRequestId)
 	}
+
 	if err != nil {
 		return nil, err
 	}
+
 	return &pullRequest, nil
 }
 
-func (r *PullRequestRepository) MergePR(pullRequestId string, status string, time time.Time) (*model.PullRequest, error) {
+func (r *PullRequestRepository) MergePR(ctx context.Context, pullRequestId string, status string, time time.Time) (*model.PullRequest, error) {
 	sql := `
         UPDATE pull-requests
         SET status = $3, mergedAt = $2
@@ -70,7 +85,7 @@ func (r *PullRequestRepository) MergePR(pullRequestId string, status string, tim
                                   author_id, status, createdAt, mergedAt`
 
 	pullRequest := model.PullRequest{}
-	err := r.pool.QueryRow(r.ctx, sql, pullRequestId, time, status).Scan(
+	err := r.pool.QueryRow(ctx, sql, pullRequestId, time, status).Scan(
 		&pullRequest.PullRequestId,
 		&pullRequest.PullRequestName,
 		&pullRequest.AuthorId,

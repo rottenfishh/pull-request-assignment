@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"pr-assignment/internal/adapter/out/repository"
 	"pr-assignment/internal/model"
 
@@ -13,21 +14,19 @@ type UserService struct {
 }
 
 func NewUserService(r *repository.UserRepository, t *repository.TeamRepository) *UserService {
-	r.Init()
-	t.Init()
 	return &UserService{r, t}
 }
 
-func (s *UserService) SetUserActive(userId string, isActive bool) error {
-	err := s.userRepository.UpdateUserStatus(userId, isActive)
+func (s *UserService) SetUserActive(ctx context.Context, userId string, isActive bool) error {
+	err := s.userRepository.UpdateUserStatus(ctx, userId, isActive)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *UserService) AddTeam(team model.Team) error {
-	res, err := s.teamRepository.Exists(team.TeamName)
+func (s *UserService) AddTeam(ctx context.Context, team model.Team) error {
+	res, err := s.teamRepository.Exists(ctx, team.TeamName)
 	if err != nil {
 		return err
 	}
@@ -37,17 +36,17 @@ func (s *UserService) AddTeam(team model.Team) error {
 
 	teamId := uuid.New()
 
-	err = s.userRepository.AddTeam(team, teamId)
+	err = s.userRepository.AddTeam(ctx, team, teamId)
 	if err != nil {
 		return err
 	}
 
-	err = s.teamRepository.AddTeam(team, teamId)
+	err = s.teamRepository.AddTeam(ctx, team, teamId)
 	return nil
 }
 
-func (s *UserService) GetTeam(teamName string) (*model.Team, error) {
-	res, err := s.teamRepository.Exists(teamName)
+func (s *UserService) GetTeam(ctx context.Context, teamName string) (*model.Team, error) {
+	res, err := s.teamRepository.Exists(ctx, teamName)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +54,7 @@ func (s *UserService) GetTeam(teamName string) (*model.Team, error) {
 		return nil, model.NewError(model.NOT_FOUND, "%s not found", teamName)
 	}
 
-	team, err := s.userRepository.GetTeam(teamName)
+	team, err := s.userRepository.GetTeam(ctx, teamName)
 	if err != nil {
 		return nil, model.NewError(model.NOT_FOUND, "%s not found", teamName)
 	}

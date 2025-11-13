@@ -3,37 +3,26 @@ package repository
 import (
 	"context"
 	"fmt"
+	"pr-assignment/internal/model"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"log"
-	"pr-assignment/internal/model"
 )
 
+// team id team name user id is_active
 type TeamRepository struct {
 	pool *pgxpool.Pool
-	ctx  context.Context
 }
 
-func (r *TeamRepository) Init() {
-	var err error
-	r.pool, err = pgxpool.New(r.ctx, "postgres://<username>:<password>@localhost:5432/teams")
-
-	if err != nil {
-		log.Fatal("Unable to connect to database:", err)
-	}
-
-	if err := r.pool.Ping(r.ctx); err != nil {
-		log.Fatal("Unable to ping database:", err)
-	}
-
-	fmt.Println("Connected to PostgreSQL database!")
+func NewTeamRepository(pool *pgxpool.Pool) *TeamRepository {
+	return &TeamRepository{pool: pool}
 }
 
-func (r *TeamRepository) Exists(teamName string) (bool, error) {
+func (r *TeamRepository) Exists(ctx context.Context, teamName string) (bool, error) {
 	sql := `
            SELECT team_name FROM teams
            WHERE team_name = $1`
-	commandTag, err := r.pool.Exec(r.ctx, sql, teamName)
+	commandTag, err := r.pool.Exec(ctx, sql, teamName)
 	if err != nil {
 		return false, err
 	}
@@ -43,11 +32,11 @@ func (r *TeamRepository) Exists(teamName string) (bool, error) {
 	return false, nil
 }
 
-func (r *TeamRepository) AddTeam(newTeam model.Team, teamId uuid.UUID) error {
+func (r *TeamRepository) AddTeam(ctx context.Context, newTeam model.Team, teamId uuid.UUID) error {
 	sql := `
-           INSERT INTO teams (team_id, team_name, user_id)`
+           INSERT INTO teams (team_id, team_name, user_id, is_active)`
 
-	teamExists, err := r.Exists(newTeam.TeamName)
+	teamExists, err := r.Exists(ctx, newTeam.TeamName)
 
 	if err != nil {
 		return err
@@ -58,7 +47,7 @@ func (r *TeamRepository) AddTeam(newTeam model.Team, teamId uuid.UUID) error {
 	}
 
 	for _, member := range newTeam.Members {
-		_, err = r.pool.Exec(r.ctx, sql, teamId, newTeam.TeamName, member.UserId)
+		_, err = r.pool.Exec(ctx, sql, teamId, newTeam.TeamName, member.UserId, member.IsActive)
 		if err != nil {
 			return err
 		}
@@ -67,12 +56,13 @@ func (r *TeamRepository) AddTeam(newTeam model.Team, teamId uuid.UUID) error {
 	return nil
 }
 
-func (r *TeamRepository) GetUsersIdByTeam(teamId string) ([]string, error) {
+func (r *TeamRepository) GetActiveUsersByTeam(ctx context.Context, teamId string) ([]string, error) {
 	sql := `
         SELECT user_id FROM teams 
-        WHERE team_id = $1`
+        WHERE team_id = $1 
+        AND is_active = true`
 	userIds := make([]string, 0)
-	rows, err := r.pool.Query(r.ctx, sql, teamId)
+	rows, err := r.pool.Query(ctx, sql, teamId)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}

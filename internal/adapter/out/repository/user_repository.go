@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"pr-assignment/internal/model"
 
 	"github.com/google/uuid"
@@ -14,32 +13,20 @@ import (
 
 type UserRepository struct {
 	pool *pgxpool.Pool
-	ctx  context.Context
 }
 
-func (r *UserRepository) Init() {
-	var err error
-	r.pool, err = pgxpool.New(r.ctx, "postgres://<username>:<password>@localhost:5432/users")
-
-	if err != nil {
-		log.Fatal("Unable to connect to database:", err)
-	}
-
-	if err := r.pool.Ping(r.ctx); err != nil {
-		log.Fatal("Unable to ping database:", err)
-	}
-
-	fmt.Println("Connected to PostgreSQL database!")
+func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
+	return &UserRepository{pool: pool}
 }
 
-func (r *UserRepository) UpdateUserStatus(userId string, newStatus bool) error {
+func (r *UserRepository) UpdateUserStatus(ctx context.Context, userId string, newStatus bool) error {
 	sql := `
         UPDATE users
         SET status = $1, updated_at = NOW()
         WHERE id = $2
     `
 
-	commandTag, err := r.pool.Exec(r.ctx, sql, newStatus, userId)
+	commandTag, err := r.pool.Exec(ctx, sql, newStatus, userId)
 
 	if err != nil {
 		return fmt.Errorf("error updating user status: %w", err)
@@ -52,7 +39,7 @@ func (r *UserRepository) UpdateUserStatus(userId string, newStatus bool) error {
 	return nil
 }
 
-func (r *UserRepository) AddTeam(newTeam model.Team, teamId uuid.UUID) error {
+func (r *UserRepository) AddTeam(ctx context.Context, newTeam model.Team, teamId uuid.UUID) error {
 	sql := `
         INSERT INTO users(user_id, username, team_name, is_active)
         VALUES ($1, $2, $3, $4)
@@ -60,7 +47,7 @@ func (r *UserRepository) AddTeam(newTeam model.Team, teamId uuid.UUID) error {
         `
 
 	for _, member := range newTeam.Members {
-		_, err := r.pool.Exec(r.ctx, sql, member.UserId, member.Username,
+		_, err := r.pool.Exec(ctx, sql, member.UserId, member.Username,
 			teamId, member.IsActive)
 
 		if err != nil {
@@ -71,11 +58,11 @@ func (r *UserRepository) AddTeam(newTeam model.Team, teamId uuid.UUID) error {
 	return nil
 }
 
-func (r *UserRepository) GetTeam(teamName string) (*model.Team, error) {
+func (r *UserRepository) GetTeam(ctx context.Context, teamName string) (*model.Team, error) {
 	sql := `
         SELECT * FROM users WHERE team_name = $1`
 
-	rows, err := r.pool.Query(r.ctx, sql, teamName)
+	rows, err := r.pool.Query(ctx, sql, teamName)
 
 	if err != nil {
 		return nil, model.NewError(model.NOT_FOUND, "team not found", teamName)
@@ -107,17 +94,19 @@ func (r *UserRepository) GetTeam(teamName string) (*model.Team, error) {
 	return &team, nil
 }
 
-func (r *UserRepository) GetTeamNameByUserId(userId string) (string, error) {
+func (r *UserRepository) GetTeamNameByUserId(ctx context.Context, userId string) (string, error) {
 	sql := `
         SELECT team_name FROM users WHERE id = $1`
 
-	row := r.pool.QueryRow(r.ctx, sql, userId)
-	if errors.Is(row, pgx.ErrNoRows) {
-		return "", model.NewError(model.NOT_FOUND, "team with userId %s not found", userId)
-	}
+	row := r.pool.QueryRow(ctx, sql, userId)
 
 	var teamName string
 	err := row.Scan(&teamName)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", model.NewError(model.NOT_FOUND, "team with userId %s not found", userId)
+	}
+
 	if err != nil {
 		return "", fmt.Errorf("error scanning row: %w", err)
 	}
