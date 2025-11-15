@@ -1,0 +1,396 @@
+definitions:
+  dto.PrMerged:
+    properties:
+      assigned_reviewers:
+        items:
+          type: string
+        type: array
+      author_id:
+        type: string
+      merged_at:
+        type: string
+      pull_request_id:
+        type: string
+      pull_request_name:
+        type: string
+      status:
+        $ref: '#/definitions/model.PRstatus'
+    type: object
+  dto.PrMergedResponse:
+    properties:
+      pr:
+        $ref: '#/definitions/dto.PrMerged'
+    type: object
+  dto.PrReassignQuery:
+    properties:
+      old_reviewer_id:
+        type: string
+      pull_request_id:
+        type: string
+    type: object
+  dto.PrReassignResponse:
+    properties:
+      pr:
+        $ref: '#/definitions/dto.PrResponse'
+      replaced_by:
+        type: string
+    type: object
+  dto.PrResponse:
+    properties:
+      assigned_reviewers:
+        items:
+          type: string
+        type: array
+      author_id:
+        type: string
+      pull_request_id:
+        type: string
+      pull_request_name:
+        type: string
+      status:
+        $ref: '#/definitions/model.PRstatus'
+    type: object
+  dto.PullRequestIdQuery:
+    properties:
+      pull_request_id:
+        type: string
+    type: object
+  dto.StatusQuery:
+    properties:
+      is_active:
+        type: boolean
+      user_id:
+        type: string
+    type: object
+  dto.UserPrsResponse:
+    properties:
+      pull_requests:
+        items:
+          $ref: '#/definitions/model.PullRequestShort'
+        type: array
+      user_id:
+        type: string
+    type: object
+  dto.UserResponse:
+    properties:
+      user:
+        $ref: '#/definitions/model.User'
+    type: object
+  model.CustomError:
+    properties:
+      code:
+        type: string
+      message:
+        $ref: '#/definitions/model.ErrCode'
+    type: object
+  model.ErrCode:
+    enum:
+    - TEAM_EXISTS
+    - PR_EXISTS
+    - PR_MERGED
+    - NOT_ASSIGNED
+    - NO_CANDIDATE
+    - NOT_FOUND
+    - INTERNAL_ERROR
+    type: string
+    x-enum-varnames:
+    - TEAM_EXISTS
+    - PR_EXISTS
+    - PR_MERGED
+    - NOT_ASSIGNED
+    - NO_CANDIDATE
+    - NOT_FOUND
+    - INTERNAL_ERROR
+  model.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/model.CustomError'
+    type: object
+  model.PRstatus:
+    enum:
+    - created
+    - merged
+    type: string
+    x-enum-varnames:
+    - CREATED
+    - MERGED
+  model.PullRequestShort:
+    properties:
+      author_id:
+        type: string
+      pull_request_id:
+        type: string
+      pull_request_name:
+        type: string
+      status:
+        $ref: '#/definitions/model.PRstatus'
+    type: object
+  model.Team:
+    properties:
+      members:
+        items:
+          $ref: '#/definitions/model.TeamMember'
+        type: array
+      team_name:
+        type: string
+    type: object
+  model.TeamMember:
+    properties:
+      is_active:
+        type: boolean
+      user_id:
+        type: string
+      username:
+        type: string
+    type: object
+  model.User:
+    properties:
+      is_active:
+        type: boolean
+      team_name:
+        type: string
+      user_id:
+        type: string
+      username:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /pullRequest/create:
+    post:
+      consumes:
+      - application/json
+      description: create new pr and assign reviewers automatically
+      parameters:
+      - description: PR DATA
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/model.PullRequestShort'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.PrResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Create new Pull Request
+      tags:
+      - pull requests
+  /pullRequest/merge:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: PR ID
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PullRequestIdQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PrMergedResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Merge Pull Request
+      tags:
+      - pull requests
+  /pullRequest/reassign:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Pr id, old reviewer id
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PrReassignQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PrReassignResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Reassign reviewer Pull Request
+      tags:
+      - pull requests
+  /team/add:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 'team object: team_name {members}'
+        in: body
+        name: team
+        required: true
+        schema:
+          $ref: '#/definitions/model.Team'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Team'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: add new team
+      tags:
+      - teams
+  /team/get:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - in: query
+        name: team_name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Team'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: get existing team
+      tags:
+      - teams
+  /users/getReview:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - in: query
+        name: user_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.UserPrsResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: get prs where user is reviewer
+      tags:
+      - users
+  /users/setIsActive:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: user id, status
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/dto.StatusQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.UserResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: set user is active status
+      tags:
+      - users
+swagger: "2.0"

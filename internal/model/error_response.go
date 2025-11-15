@@ -1,5 +1,24 @@
 package model
 
+import (
+	"errors"
+)
+
 type ErrorResponse struct {
-	error CustomError
+	Error CustomError `json:"error"`
+}
+
+func ParseErrorResponse(err error) *ErrorResponse {
+	var response ErrorResponse
+
+	var customErr *CustomError
+	if errors.As(err, &customErr) {
+		response.Error.Code = customErr.Code
+		response.Error.Message = customErr.Message
+		return &response
+	} else {
+		response.Error.Code = INTERNAL_ERROR
+		response.Error.Message = err.Error()
+	}
+	return nil
 }

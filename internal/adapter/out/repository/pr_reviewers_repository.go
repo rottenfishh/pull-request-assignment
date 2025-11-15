@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// pr id author id user id
+// pr id user id
 
 type PrReviewersRepository struct {
 	pool *pgxpool.Pool
@@ -22,7 +22,7 @@ func NewPrReviewersRepository(pool *pgxpool.Pool) *PrReviewersRepository {
 
 func (r *PrReviewersRepository) addReviewer(ctx context.Context, pullRequestId string, authorId string, reviewerId string) error {
 	sql := `
-         INSERT INTO pr_reviewers (pr_id, author_id, reviewer_id)`
+         INSERT INTO pr_reviewers (pull_request_id, reviewer_id) VALUES ($1, $2);`
 
 	_, err := r.pool.Exec(ctx, sql, pullRequestId, authorId, reviewerId)
 	if err != nil {
@@ -36,7 +36,7 @@ func (r *PrReviewersRepository) ChangeReviewer(ctx context.Context, pullRequestI
 	sql := `
         UPDATE pr_reviewers
         SET reviewer_id = $2
-        WHERE pr_id = $1 AND reviewer_id = $3`
+        WHERE pull_request_id = $1 AND reviewer_id = $3`
 
 	_, err := r.pool.Exec(ctx, sql, pullRequestId, newReviewerId, oldReviewerId)
 	if err != nil {
@@ -46,32 +46,10 @@ func (r *PrReviewersRepository) ChangeReviewer(ctx context.Context, pullRequestI
 	return nil
 }
 
-func (r *PrReviewersRepository) GetAuthor(ctx context.Context, pullRequestId string) (string, error) {
-	sql := `
-        SELECT author_id
-        FROM pr_reviewers
-        WHERE pr_id = $1`
-
-	row := r.pool.QueryRow(ctx, sql, pullRequestId)
-
-	var authorId string
-	err := row.Scan(&authorId)
-
-	if err != nil {
-		return "", err
-	}
-
-	if errors.Is(err, pgx.ErrNoRows) {
-		return "", model.NewError(model.NOT_FOUND, "PR reviewers not found")
-	}
-
-	return authorId, nil
-}
-
 func (r *PrReviewersRepository) GetReviewers(ctx context.Context, pullRequestId string) ([]string, error) {
 	sql := `
         SELECT reviewer_id FROM pr_reviewers
-        WHERE pr_id = $1`
+        WHERE pull_request_id = $1`
 
 	rows, err := r.pool.Query(ctx, sql, pullRequestId)
 	if err != nil {
@@ -100,7 +78,7 @@ func (r *PrReviewersRepository) GetReviewers(ctx context.Context, pullRequestId 
 
 func (r *PrReviewersRepository) GetPRsByUser(ctx context.Context, userId string) ([]string, error) {
 	sql := `
-        SELECT pr_id FROM pr_reviewers
+        SELECT pull_request_id FROM pr_reviewers
         WHERE reviewer_id = $1`
 	rows, err := r.pool.Query(ctx, sql, userId)
 

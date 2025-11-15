@@ -20,8 +20,8 @@ func NewPullRequestRepository(pool *pgxpool.Pool) *PullRequestRepository {
 
 func (r *PullRequestRepository) GetPR(ctx context.Context, pullRequestId string) (*model.PullRequest, error) {
 	sql := `
-        SELECT * FROM pr_repository
-        WHERE pr_id = $1`
+        SELECT * FROM pull_requests
+        WHERE pull_request_id = $1`
 
 	row := r.pool.QueryRow(ctx, sql, pullRequestId)
 
@@ -48,11 +48,11 @@ func (r *PullRequestRepository) GetPR(ctx context.Context, pullRequestId string)
 func (r *PullRequestRepository) CreatePR(ctx context.Context, pr model.PullRequest) (*model.PullRequest, error) {
 	sql := `
         INSERT INTO pull_requests(pull_request_id, pull_request_name, 
-                                  author_id, status, createdAt, mergedAt)
+                                  author_id, status, created_at, merged_at)
         VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (pull_request_id) DO NOTHING
         RETURNING pull_request_id, pull_request_name, 
-                                  author_id, status, createdAt, mergedAt
+                                  author_id, status, created_at, merged_at
         `
 
 	pullRequest := model.PullRequest{}
@@ -78,11 +78,11 @@ func (r *PullRequestRepository) CreatePR(ctx context.Context, pr model.PullReque
 
 func (r *PullRequestRepository) MergePR(ctx context.Context, pullRequestId string, status model.PRstatus, time time.Time) (*model.PullRequest, error) {
 	sql := `
-        UPDATE pull-requests
+        UPDATE pull_requests
         SET status = $3, mergedAt = $2
         WHERE pull_request_id = $1
         RETURNING pull_request_id, pull_request_name, 
-                                  author_id, status, createdAt, mergedAt`
+                                  author_id, status, created_at, merged_at`
 
 	pullRequest := model.PullRequest{}
 	err := r.pool.QueryRow(ctx, sql, pullRequestId, time, status).Scan(
@@ -100,4 +100,26 @@ func (r *PullRequestRepository) MergePR(ctx context.Context, pullRequestId strin
 		return nil, err
 	}
 	return &pullRequest, nil
+}
+
+func (r *PullRequestRepository) GetAuthor(ctx context.Context, pullRequestId string) (string, error) {
+	sql := `
+        SELECT author_id
+        FROM pull_requests
+        WHERE pull_request_id = $1`
+
+	row := r.pool.QueryRow(ctx, sql, pullRequestId)
+
+	var authorId string
+	err := row.Scan(&authorId)
+
+	if err != nil {
+		return "", err
+	}
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", model.NewError(model.NOT_FOUND, "Pull request %s not found", pullRequestId)
+	}
+
+	return authorId, nil
 }

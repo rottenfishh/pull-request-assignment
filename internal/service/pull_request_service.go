@@ -19,7 +19,12 @@ func NewPullRequestService(prRepo *repository.PullRequestRepository, prReviewsRe
 	return &PullRequestService{prRepo, prReviewsRepo, teamRepo, userRepo}
 }
 
-func (s *PullRequestService) createPR(ctx context.Context, pullRequest model.PullRequestShort) (*model.PullRequest, error) {
+func (s *PullRequestService) CreatePR(ctx context.Context, pullRequest model.PullRequestShort) (*model.PullRequest, error) {
+	_, err := s.userRepository.GetUserById(ctx, pullRequest.AuthorId)
+	if err != nil {
+		return nil, err
+	}
+
 	pullRequest.Status = model.CREATED
 	pr := model.PullRequest{
 		PullRequestShort:  pullRequest,
@@ -33,7 +38,7 @@ func (s *PullRequestService) createPR(ctx context.Context, pullRequest model.Pul
 		return nil, err
 	}
 
-	err = s.assignReviewers(ctx, createdPR)
+	err = s.AssignReviewers(ctx, createdPR)
 	if err != nil {
 		return nil, err
 	}
@@ -41,13 +46,13 @@ func (s *PullRequestService) createPR(ctx context.Context, pullRequest model.Pul
 	return createdPR, nil
 }
 
-func (s *PullRequestService) getActiveTeammatesByUser(ctx context.Context, userId string) ([]string, error) {
+func (s *PullRequestService) GetActiveTeammatesByUser(ctx context.Context, userId string) ([]string, error) {
 	teamId, err := s.userRepository.GetTeamNameByUserId(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
 
-	userIds, err := s.teamRepository.GetActiveUsersByTeam(ctx, teamId)
+	userIds, err := s.userRepository.GetActiveUsersByTeam(ctx, teamId)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +60,8 @@ func (s *PullRequestService) getActiveTeammatesByUser(ctx context.Context, userI
 	return userIds, nil
 }
 
-func (s *PullRequestService) assignReviewers(ctx context.Context, pr *model.PullRequest) error {
-	teammates, err := s.getActiveTeammatesByUser(ctx, pr.AuthorId)
+func (s *PullRequestService) AssignReviewers(ctx context.Context, pr *model.PullRequest) error {
+	teammates, err := s.GetActiveTeammatesByUser(ctx, pr.AuthorId)
 
 	if err != nil {
 		return err
@@ -74,20 +79,24 @@ func (s *PullRequestService) assignReviewers(ctx context.Context, pr *model.Pull
 }
 
 // return who replaced
-func (s *PullRequestService) changeReviewer(ctx context.Context, prId string, oldReviewerId string) (*model.PullRequest, error) {
-	authorId, err := s.prReviewersRepository.GetAuthor(ctx, prId)
+func (s *PullRequestService) ChangeReviewer(ctx context.Context, prId string, oldReviewerId string) (*model.ReassignmentResult, error) {
+	pullRequest, err := s.prRepository.GetPR(ctx, prId)
 	if err != nil {
 		return nil, err
 	}
 
-	teammates, err := s.teamRepository.GetActiveUsersByTeam(ctx, authorId)
+	if pullRequest.Status == model.MERGED {
+		return nil, model.NewError(model.PR_MERGED, "PR already merged")
+	}
+
+	teammates, err := s.userRepository.GetActiveUsersByTeam(ctx, pullRequest.AuthorId)
 	if err != nil {
 		return nil, err
 	}
 
 	var newReviewerId string
 	for _, userId := range teammates {
-		if userId != oldReviewerId && userId != authorId {
+		if userId != oldReviewerId && userId != pullRequest.AuthorId {
 			newReviewerId = userId
 			break
 		}
@@ -109,10 +118,15 @@ func (s *PullRequestService) changeReviewer(ctx context.Context, prId string, ol
 	}
 
 	pr.AssignedReviewers = reviewers
-	return pr, nil
+
+	response := model.ReassignmentResult{
+		PullRequest:   *pr,
+		OldReviewerId: oldReviewerId,
+	}
+	return &response, nil
 }
 
-func (s *PullRequestService) mergePR(ctx context.Context, pullRequestId string) (*model.PullRequest, error) {
+func (s *PullRequestService) MergePR(ctx context.Context, pullRequestId string) (*model.PullRequest, error) {
 	createdPR, err := s.prRepository.MergePR(ctx, pullRequestId, model.MERGED, time.Now())
 
 	if err != nil {
@@ -122,7 +136,7 @@ func (s *PullRequestService) mergePR(ctx context.Context, pullRequestId string) 
 	return createdPR, nil
 }
 
-func (s *PullRequestService) getPRsByUser(ctx context.Context, userId string) ([]*model.PullRequest, error) {
+func (s *PullRequestService) GetPRsByUser(ctx context.Context, userId string) ([]*model.PullRequest, error) {
 	pullRequestsIds, err := s.prReviewersRepository.GetPRsByUser(ctx, userId)
 	if err != nil {
 		return nil, err

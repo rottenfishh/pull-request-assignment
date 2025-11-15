@@ -17,12 +17,12 @@ func NewUserService(r *repository.UserRepository, t *repository.TeamRepository) 
 	return &UserService{r, t}
 }
 
-func (s *UserService) SetUserActive(ctx context.Context, userId string, isActive bool) error {
-	err := s.userRepository.UpdateUserStatus(ctx, userId, isActive)
+func (s *UserService) SetUserActive(ctx context.Context, userId string, isActive bool) (*model.User, error) {
+	user, err := s.userRepository.UpdateUserStatus(ctx, userId, isActive)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return user, nil
 }
 
 func (s *UserService) AddTeam(ctx context.Context, team model.Team) error {
@@ -35,13 +35,16 @@ func (s *UserService) AddTeam(ctx context.Context, team model.Team) error {
 	}
 
 	teamId := uuid.New()
+	err = s.teamRepository.AddTeam(ctx, team, teamId)
+	if err != nil {
+		return err
+	}
 
 	err = s.userRepository.AddTeam(ctx, team, teamId)
 	if err != nil {
 		return err
 	}
 
-	err = s.teamRepository.AddTeam(ctx, team, teamId)
 	return nil
 }
 
@@ -51,7 +54,7 @@ func (s *UserService) GetTeam(ctx context.Context, teamName string) (*model.Team
 		return nil, err
 	}
 	if !res {
-		return nil, model.NewError(model.NOT_FOUND, "%s not found", teamName)
+		return nil, model.NewError(model.NOT_FOUND, "%s team table not found", teamName)
 	}
 
 	team, err := s.userRepository.GetTeam(ctx, teamName)
