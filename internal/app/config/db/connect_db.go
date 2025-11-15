@@ -49,18 +49,6 @@ func (d *DB) RunMigrations() error {
 		return fmt.Errorf("unable to run migrations: %v", err)
 	}
 
-	//err = m.Force(1)
-	//if err != nil {
-	//	return fmt.Errorf("failed to force migrations: %v", err)
-	//}
-	//if err != nil {
-	//	return fmt.Errorf("failed to down migrations: %v", err)
-	//}
-	err = m.Down()
-	if err != nil {
-		return err
-	}
-
 	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return fmt.Errorf("failed to apply migrations: %v", err)
 	}

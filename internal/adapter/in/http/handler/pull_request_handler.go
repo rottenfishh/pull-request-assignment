@@ -117,7 +117,7 @@ func (h *PullRequestHandler) ReassignPullRequest(c *gin.Context) {
 	prResponse := dto.PrResponse{PullRequestShort: result.PullRequest.PullRequestShort,
 		AssignedReviewers: result.PullRequest.AssignedReviewers}
 
-	prReassignResponse := dto.PrReassignResponse{PrResponse: prResponse, ReplacedBy: result.OldReviewerId}
+	prReassignResponse := dto.PrReassignResponse{PrResponse: prResponse, ReplacedBy: result.NewReviewerId}
 
 	c.IndentedJSON(http.StatusOK, prReassignResponse)
 }

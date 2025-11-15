@@ -1,5 +1,5 @@
 package dto
 
 type TeamName struct {
-	TeamName string `json:"team_name"`
+	TeamName string `form:"team_name" json:"team_name"`
 }

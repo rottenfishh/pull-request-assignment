@@ -1,5 +1,5 @@
 package dto
 
 type UserIdQuery struct {
-	UserId string `json:"user_id"`
+	UserId string `form:"user_id" json:"user_id"`
 }

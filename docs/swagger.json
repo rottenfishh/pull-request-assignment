@@ -164,6 +164,88 @@
                 }
             }
         },
+        "/stat/pull_request/reviewers": {
+            "get": {
+                "description": "get pull requests with reviewers and their number",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statistics"
+                ],
+                "summary": "get prs with assigned reviewers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PrReviewersCount"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/stat/users/reviews": {
+            "get": {
+                "description": "get users and in how many pull requests they are reviewers",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statistics"
+                ],
+                "summary": "get users and number of reviews",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.UserReviewsCount"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/team/add": {
             "post": {
                 "consumes": [
@@ -230,18 +312,17 @@
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "team_name",
                         "name": "team_name",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.Team"
-                            }
+                            "$ref": "#/definitions/model.Team"
                         }
                     },
                     "400": {
@@ -280,18 +361,17 @@
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "user id",
                         "name": "user_id",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.UserPrsResponse"
-                            }
+                            "$ref": "#/definitions/dto.UserPrsResponse"
                         }
                     },
                     "400": {
@@ -342,10 +422,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.UserResponse"
-                            }
+                            "$ref": "#/definitions/dto.UserResponse"
                         }
                     },
                     "400": {
@@ -542,6 +619,17 @@
                 "MERGED"
             ]
         },
+        "model.PrReviewersCount": {
+            "type": "object",
+            "properties": {
+                "pull_request": {
+                    "$ref": "#/definitions/model.PullRequestShort"
+                },
+                "reviewers_count": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.PullRequestShort": {
             "type": "object",
             "properties": {
@@ -601,6 +689,17 @@
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "model.UserReviewsCount": {
+            "type": "object",
+            "properties": {
+                "reviews_count": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "$ref": "#/definitions/model.User"
                 }
             }
         }

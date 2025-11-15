@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"pr-assignment/internal/adapter/out/repository"
 	"pr-assignment/internal/model"
 	"time"
@@ -16,6 +17,7 @@ type PullRequestService struct {
 
 func NewPullRequestService(prRepo *repository.PullRequestRepository, prReviewsRepo *repository.PrReviewersRepository,
 	teamRepo *repository.TeamRepository, userRepo *repository.UserRepository) *PullRequestService {
+
 	return &PullRequestService{prRepo, prReviewsRepo, teamRepo, userRepo}
 }
 
@@ -46,39 +48,6 @@ func (s *PullRequestService) CreatePR(ctx context.Context, pullRequest model.Pul
 	return createdPR, nil
 }
 
-func (s *PullRequestService) GetActiveTeammatesByUser(ctx context.Context, userId string) ([]string, error) {
-	teamId, err := s.userRepository.GetTeamNameByUserId(ctx, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	userIds, err := s.userRepository.GetActiveUsersByTeam(ctx, teamId)
-	if err != nil {
-		return nil, err
-	}
-
-	return userIds, nil
-}
-
-func (s *PullRequestService) AssignReviewers(ctx context.Context, pr *model.PullRequest) error {
-	teammates, err := s.GetActiveTeammatesByUser(ctx, pr.AuthorId)
-
-	if err != nil {
-		return err
-	}
-
-	for _, userId := range teammates {
-		if userId != pr.AuthorId {
-			pr.AssignedReviewers = append(pr.AssignedReviewers, userId)
-		}
-		if len(pr.AssignedReviewers) == 2 {
-			break
-		}
-	}
-	return nil
-}
-
-// return who replaced
 func (s *PullRequestService) ChangeReviewer(ctx context.Context, prId string, oldReviewerId string) (*model.ReassignmentResult, error) {
 	pullRequest, err := s.prRepository.GetPR(ctx, prId)
 	if err != nil {
@@ -88,15 +57,32 @@ func (s *PullRequestService) ChangeReviewer(ctx context.Context, prId string, ol
 	if pullRequest.Status == model.MERGED {
 		return nil, model.NewError(model.PR_MERGED, "PR already merged")
 	}
+	teamName, err := s.userRepository.GetTeamNameByUserId(ctx, pullRequest.AuthorId)
 
-	teammates, err := s.userRepository.GetActiveUsersByTeam(ctx, pullRequest.AuthorId)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
+	teammates, err := s.userRepository.GetActiveUsersByTeam(ctx, teamName)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	reviewers, err := s.prReviewersRepository.GetReviewers(ctx, prId)
+	fmt.Println(reviewers)
+
+	if !s.inReviewers(ctx, reviewers, oldReviewerId) {
+		return nil, model.NewError(model.NOT_ASSIGNED, "Old reviewer was not assigned to PR")
+	}
+
 	var newReviewerId string
+	newReviewerId = oldReviewerId
 	for _, userId := range teammates {
-		if userId != oldReviewerId && userId != pullRequest.AuthorId {
+		res, _ := s.checkAllowedToReview(ctx, reviewers, pullRequest.AuthorId, userId)
+
+		if res {
 			newReviewerId = userId
 			break
 		}
@@ -104,6 +90,7 @@ func (s *PullRequestService) ChangeReviewer(ctx context.Context, prId string, ol
 
 	err = s.prReviewersRepository.ChangeReviewer(ctx, prId, oldReviewerId, newReviewerId)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -112,7 +99,7 @@ func (s *PullRequestService) ChangeReviewer(ctx context.Context, prId string, ol
 		return nil, err
 	}
 
-	reviewers, err := s.prReviewersRepository.GetReviewers(ctx, prId)
+	reviewers, err = s.prReviewersRepository.GetReviewers(ctx, prId)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +108,7 @@ func (s *PullRequestService) ChangeReviewer(ctx context.Context, prId string, ol
 
 	response := model.ReassignmentResult{
 		PullRequest:   *pr,
-		OldReviewerId: oldReviewerId,
+		NewReviewerId: newReviewerId,
 	}
 	return &response, nil
 }
@@ -130,9 +117,15 @@ func (s *PullRequestService) MergePR(ctx context.Context, pullRequestId string) 
 	createdPR, err := s.prRepository.MergePR(ctx, pullRequestId, model.MERGED, time.Now())
 
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
-
+	reviewers, err := s.prReviewersRepository.GetReviewers(ctx, pullRequestId)
+	fmt.Println(reviewers)
+	if err != nil {
+		return nil, err
+	}
+	createdPR.AssignedReviewers = reviewers
 	return createdPR, nil
 }
 

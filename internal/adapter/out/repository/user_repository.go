@@ -69,6 +69,7 @@ func (r *UserRepository) GetTeam(ctx context.Context, teamName string) (*model.T
 	rows, err := r.pool.Query(ctx, sql, teamName)
 
 	if err != nil {
+		fmt.Println("error getting team userrepo")
 		return nil, model.NewError(model.NOT_FOUND, "team not found %s", teamName)
 	}
 
@@ -84,6 +85,7 @@ func (r *UserRepository) GetTeam(ctx context.Context, teamName string) (*model.T
 		err = rows.Scan(
 			&teamMember.UserId,
 			&teamMember.Username,
+			&teamName,
 			&teamMember.IsActive)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning row: %w", err)

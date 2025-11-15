@@ -25,13 +25,14 @@ import (
 type Server struct {
 	prHandler   *handler.PullRequestHandler
 	userHandler *handler.UserHandler
+	statHandler *handler.StatHandler
 }
 
-func NewServer(prHandler *handler.PullRequestHandler, userHandler *handler.UserHandler) *Server {
-	return &Server{prHandler: prHandler, userHandler: userHandler}
+func NewServer(prHandler *handler.PullRequestHandler, userHandler *handler.UserHandler, statHandler *handler.StatHandler) *Server {
+	return &Server{prHandler: prHandler, userHandler: userHandler, statHandler: statHandler}
 }
 
-func (s *Server) RunServer(ctx context.Context) {
+func (s *Server) RunServer(ctx context.Context) error {
 	router := gin.Default()
 	router.Use(gin.Recovery())
 	router.GET("/team/get", s.userHandler.GetTeam)
@@ -43,11 +44,16 @@ func (s *Server) RunServer(ctx context.Context) {
 	router.POST("/pullRequest/create", s.prHandler.CreatePullRequest)
 	router.POST("/pullRequest/merge", s.prHandler.MergePullRequest)
 	router.POST("/pullRequest/reassign", s.prHandler.ReassignPullRequest)
+
+	router.GET("/stat/pull_request/reviewers", s.statHandler.GetReviewersCountedByPR)
+	router.GET("/stat/users/reviews", s.statHandler.GetReviewsCountedByUser)
+
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	err := router.Run(":8080")
 	if err != nil {
 		fmt.Println(err)
-		return
+		return err
 	}
+	return nil
 }

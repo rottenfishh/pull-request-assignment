@@ -12,7 +12,7 @@ import (
 
 func main() {
 	ctx := context.Background()
-	dsn := "here goes db info"
+	dsn := "dsn"
 
 	database, err := db.NewDb(ctx, dsn)
 	if err != nil {
@@ -32,10 +32,16 @@ func main() {
 
 	prService := service.NewPullRequestService(prRepo, prReviewersRepo, teamRepo, userRepo)
 	userService := service.NewUserService(userRepo, teamRepo)
+	statService := service.NewStatService(prReviewersRepo, userRepo, prRepo)
 
 	prHandler := handler.NewPullRequestHandler(prService)
 	userHandler := handler.NewUserHandler(userService, prService)
+	statHandler := handler.NewStatHandler(statService)
 
-	server := app.NewServer(prHandler, userHandler)
-	server.RunServer(ctx)
+	server := app.NewServer(prHandler, userHandler, statHandler)
+
+	err = server.RunServer(ctx)
+	if err != nil {
+		panic(err)
+	}
 }

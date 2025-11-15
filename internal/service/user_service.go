@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"pr-assignment/internal/adapter/out/repository"
 	"pr-assignment/internal/model"
 
@@ -27,9 +28,7 @@ func (s *UserService) SetUserActive(ctx context.Context, userId string, isActive
 
 func (s *UserService) AddTeam(ctx context.Context, team model.Team) error {
 	res, err := s.teamRepository.Exists(ctx, team.TeamName)
-	if err != nil {
-		return err
-	}
+
 	if res {
 		return model.NewError(model.TEAM_EXISTS, "%s already exists", team.TeamName)
 	}
@@ -49,18 +48,34 @@ func (s *UserService) AddTeam(ctx context.Context, team model.Team) error {
 }
 
 func (s *UserService) GetTeam(ctx context.Context, teamName string) (*model.Team, error) {
-	res, err := s.teamRepository.Exists(ctx, teamName)
+	fmt.Println("service ", teamName)
+	teamId, err := s.teamRepository.GetTeamId(ctx, teamName)
+
+	if err != nil {
+		fmt.Println("error getting team id teamRepo")
+		return nil, err
+	}
+
+	team, err := s.userRepository.GetTeam(ctx, teamId)
+	if err != nil {
+		fmt.Println("error getting team userRepo")
+		fmt.Println(err)
+		return nil, model.NewError(model.NOT_FOUND, "%s not found", teamName)
+	}
+	team.TeamName = teamName
+	return team, nil
+}
+
+func (s *PullRequestService) GetActiveTeammatesByUser(ctx context.Context, userId string) ([]string, error) {
+	teamId, err := s.userRepository.GetTeamNameByUserId(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
-	if !res {
-		return nil, model.NewError(model.NOT_FOUND, "%s team table not found", teamName)
-	}
 
-	team, err := s.userRepository.GetTeam(ctx, teamName)
+	userIds, err := s.userRepository.GetActiveUsersByTeam(ctx, teamId)
 	if err != nil {
-		return nil, model.NewError(model.NOT_FOUND, "%s not found", teamName)
+		return nil, err
 	}
 
-	return team, nil
+	return userIds, nil
 }

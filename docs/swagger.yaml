@@ -114,6 +114,13 @@ definitions:
     x-enum-varnames:
     - CREATED
     - MERGED
+  model.PrReviewersCount:
+    properties:
+      pull_request:
+        $ref: '#/definitions/model.PullRequestShort'
+      reviewers_count:
+        type: integer
+    type: object
   model.PullRequestShort:
     properties:
       author_id:
@@ -153,6 +160,13 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  model.UserReviewsCount:
+    properties:
+      reviews_count:
+        type: integer
+      user_id:
+        $ref: '#/definitions/model.User'
     type: object
 info:
   contact: {}
@@ -261,6 +275,60 @@ paths:
       summary: Reassign reviewer Pull Request
       tags:
       - pull requests
+  /stat/pull_request/reviewers:
+    get:
+      consumes:
+      - application/json
+      description: get pull requests with reviewers and their number
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PrReviewersCount'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: get prs with assigned reviewers
+      tags:
+      - statistics
+  /stat/users/reviews:
+    get:
+      consumes:
+      - application/json
+      description: get users and in how many pull requests they are reviewers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserReviewsCount'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: get users and number of reviews
+      tags:
+      - statistics
   /team/add:
     post:
       consumes:
@@ -299,8 +367,10 @@ paths:
       consumes:
       - application/json
       parameters:
-      - in: query
+      - description: team_name
+        in: query
         name: team_name
+        required: true
         type: string
       produces:
       - application/json
@@ -308,9 +378,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.Team'
-            type: array
+            $ref: '#/definitions/model.Team'
         "400":
           description: Bad Request
           schema:
@@ -331,8 +399,10 @@ paths:
       consumes:
       - application/json
       parameters:
-      - in: query
+      - description: user id
+        in: query
         name: user_id
+        required: true
         type: string
       produces:
       - application/json
@@ -340,9 +410,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/dto.UserPrsResponse'
-            type: array
+            $ref: '#/definitions/dto.UserPrsResponse'
         "400":
           description: Bad Request
           schema:
@@ -375,9 +443,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/dto.UserResponse'
-            type: array
+            $ref: '#/definitions/dto.UserResponse'
         "400":
           description: Bad Request
           schema:

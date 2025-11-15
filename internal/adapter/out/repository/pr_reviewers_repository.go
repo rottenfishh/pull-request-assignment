@@ -20,11 +20,11 @@ func NewPrReviewersRepository(pool *pgxpool.Pool) *PrReviewersRepository {
 	return &PrReviewersRepository{pool: pool}
 }
 
-func (r *PrReviewersRepository) addReviewer(ctx context.Context, pullRequestId string, authorId string, reviewerId string) error {
+func (r *PrReviewersRepository) AddReviewer(ctx context.Context, pullRequestId string, reviewerId string) error {
 	sql := `
          INSERT INTO pr_reviewers (pull_request_id, reviewer_id) VALUES ($1, $2);`
 
-	_, err := r.pool.Exec(ctx, sql, pullRequestId, authorId, reviewerId)
+	_, err := r.pool.Exec(ctx, sql, pullRequestId, reviewerId)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (r *PrReviewersRepository) GetReviewers(ctx context.Context, pullRequestId 
 		reviewersIds = append(reviewersIds, reviewerId)
 	}
 
-	if errors.Is(err, pgx.ErrNoRows) {
+	if len(reviewersIds) == 0 {
 		return nil, model.NewError(model.NOT_FOUND, "PR reviewers not found")
 	}
 
@@ -101,9 +101,72 @@ func (r *PrReviewersRepository) GetPRsByUser(ctx context.Context, userId string)
 		prIds = append(prIds, prId)
 	}
 
+	if len(prIds) == 0 {
+		return nil, model.NewError(model.NOT_FOUND, "PR reviewers not found")
+	}
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating user rows: %w", err)
 	}
 
 	return prIds, nil
+}
+
+// user - number of prs where they are reviewer
+func (r *PrReviewersRepository) GetNumberOfReviewsByUser(ctx context.Context) (map[string]int, error) {
+	sql := `
+          SELECT reviewer_id, COUNT(*) FROM pr_reviewers
+          GROUP BY reviewer_id`
+	rows, err := r.pool.Query(ctx, sql)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	usersWithReviewCount := make(map[string]int)
+
+	var reviewerId string
+	var count int
+	for rows.Next() {
+		err = rows.Scan(&reviewerId, &count)
+		if err != nil {
+			return nil, err
+		}
+		usersWithReviewCount[reviewerId] = count
+	}
+	return usersWithReviewCount, nil
+}
+
+func (r *PrReviewersRepository) GetPrsWithReviewer(ctx context.Context) (map[string]int, error) {
+	sql := `
+          SELECT pull_request_id, COUNT(*) FROM pr_reviewers
+          GROUP BY pull_request_id`
+
+	rows, err := r.pool.Query(ctx, sql)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, model.NewError(model.NOT_FOUND, "PR reviewers not found")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var prId string
+	var count int
+
+	prsMap := make(map[string]int)
+
+	for rows.Next() {
+		err = rows.Scan(&prId, &count)
+		if err != nil {
+			return nil, err
+		}
+		prsMap[prId] = count
+	}
+
+	return prsMap, nil
 }

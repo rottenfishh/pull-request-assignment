@@ -2,9 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"pr-assignment/internal/model"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -18,16 +21,41 @@ func NewTeamRepository(pool *pgxpool.Pool) *TeamRepository {
 
 func (r *TeamRepository) Exists(ctx context.Context, teamName string) (bool, error) {
 	sql := `
-           SELECT * FROM teams
+           SELECT team_name FROM teams
            WHERE team_name = $1`
-	commandTag, err := r.pool.Exec(ctx, sql, teamName)
+	fmt.Println("team name " + teamName)
+	var name string
+	queryRow := r.pool.QueryRow(ctx, sql, teamName)
+
+	err := queryRow.Scan(&name)
+	fmt.Println(err)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+
 	if err != nil {
-		return false, err
+		return false, nil
 	}
-	if commandTag.RowsAffected() > 0 {
-		return true, model.NewError(model.TEAM_EXISTS, "TEAM %s EXISTS", teamName)
+
+	return true, nil
+}
+
+func (r *TeamRepository) GetTeamId(ctx context.Context, teamName string) (string, error) {
+	sql := `
+           SELECT team_id FROM teams
+           WHERE team_name = $1`
+
+	queryRow := r.pool.QueryRow(ctx, sql, teamName)
+
+	var teamId string
+	err := queryRow.Scan(&teamId)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", model.NewError(model.NOT_FOUND, "%s team table not found", teamName)
 	}
-	return false, nil
+	if err != nil {
+		return "", err
+	}
+	return teamId, nil
 }
 
 func (r *TeamRepository) AddTeam(ctx context.Context, newTeam model.Team, teamId uuid.UUID) error {

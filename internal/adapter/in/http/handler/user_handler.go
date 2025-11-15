@@ -32,7 +32,7 @@ func NewUserHandler(userService *service.UserService, prService *service.PullReq
 // @Accept       json
 // @Produce      json
 // @Param        query body dto.StatusQuery true "user id, status"
-// @Success      200  {array}   dto.UserResponse
+// @Success      200  {object}   dto.UserResponse
 // @Failure      400  {object}  model.ErrorResponse
 // @Failure      404  {object}  model.ErrorResponse
 // @Failure      500  {object}  model.ErrorResponse
@@ -61,8 +61,8 @@ func (h *UserHandler) SetIsUserActive(c *gin.Context) {
 // @Tags         users
 // @Accept       json
 // @Produce      json
-// @Param        query query dto.UserIdQuery true "user id"
-// @Success      200  {array}   dto.UserPrsResponse
+// @Param        user_id query string true "user id"
+// @Success      200  {object}   dto.UserPrsResponse
 // @Failure      400  {object}  model.ErrorResponse
 // @Failure      404  {object}  model.ErrorResponse
 // @Failure      500  {object}  model.ErrorResponse
@@ -126,8 +126,8 @@ func (h *UserHandler) AddTeam(c *gin.Context) {
 // @Tags         teams
 // @Accept       json
 // @Produce      json
-// @Param        query query dto.TeamName true "team_name"
-// @Success      200  {array}   model.Team
+// @Param        team_name query string true "team_name"
+// @Success      200  {object}   model.Team
 // @Failure      400  {object}  model.ErrorResponse
 // @Failure      404  {object}  model.ErrorResponse
 // @Failure      500  {object}  model.ErrorResponse
@@ -141,6 +141,7 @@ func (h *UserHandler) GetTeam(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("q", query.TeamName)
 	team, err := h.userService.GetTeam(ctx, query.TeamName)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
