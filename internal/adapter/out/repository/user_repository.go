@@ -62,21 +62,21 @@ func (r *UserRepository) AddTeam(ctx context.Context, newTeam model.Team, teamId
 	return nil
 }
 
-func (r *UserRepository) GetTeam(ctx context.Context, teamName string) (*model.Team, error) {
+func (r *UserRepository) GetTeam(ctx context.Context, teamId string) (*model.Team, error) {
 	sql := `
         SELECT * FROM users WHERE team_name = $1`
 
-	rows, err := r.pool.Query(ctx, sql, teamName)
+	rows, err := r.pool.Query(ctx, sql, teamId)
 
 	if err != nil {
 		fmt.Println("error getting team userrepo")
-		return nil, model.NewError(model.NOT_FOUND, "team not found %s", teamName)
+		return nil, model.NewError(model.NOT_FOUND, "team not found %s", teamId)
 	}
 
 	defer rows.Close()
 
 	team := model.Team{
-		TeamName: teamName,
+		TeamName: teamId,
 		Members:  make([]model.TeamMember, 0),
 	}
 
@@ -85,7 +85,7 @@ func (r *UserRepository) GetTeam(ctx context.Context, teamName string) (*model.T
 		err = rows.Scan(
 			&teamMember.UserId,
 			&teamMember.Username,
-			&teamName,
+			&teamId,
 			&teamMember.IsActive)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning row: %w", err)

@@ -5,8 +5,7 @@ import (
 	"pr-assignment/internal/model"
 )
 
-func (s *PullRequestService) checkAllowedToReview(ctx context.Context, reviewers []string,
-	authorId string, newReviewerId string) (bool, error) {
+func (s *PullRequestService) checkAllowedToReview(reviewers []string, authorId string, newReviewerId string) (bool, error) {
 
 	if authorId == newReviewerId {
 		return false, nil
@@ -22,7 +21,7 @@ func (s *PullRequestService) checkAllowedToReview(ctx context.Context, reviewers
 }
 
 func (s *PullRequestService) AssignReviewers(ctx context.Context, pr *model.PullRequest) error {
-	teammates, err := s.GetActiveTeammatesByUser(ctx, pr.AuthorId)
+	teammates, err := s.userService.GetActiveTeammatesByUser(ctx, pr.AuthorId)
 	if err != nil {
 		return err
 	}
@@ -42,7 +41,7 @@ func (s *PullRequestService) AssignReviewers(ctx context.Context, pr *model.Pull
 	return nil
 }
 
-func (s *PullRequestService) inReviewers(ctx context.Context, reviewers []string, oldReviewerId string) bool {
+func (s *PullRequestService) inReviewers(reviewers []string, oldReviewerId string) bool {
 	flag := false
 	for id := range reviewers {
 		if reviewers[id] == oldReviewerId {

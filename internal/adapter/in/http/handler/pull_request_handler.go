@@ -28,7 +28,7 @@ func NewPullRequestHandler(prService *service.PullRequestService) *PullRequestHa
 // @Tags         pull requests
 // @Accept       json
 // @Produce      json
-// @Param        query body model.PullRequestShort true "PR DATA"
+// @Param        query body dto.PullRequestQuery true "PR DATA"
 // @Success      201  {object}   dto.PrResponse
 // @Failure      400  {object}  model.ErrorResponse
 // @Failure      404  {object}  model.ErrorResponse
@@ -37,7 +37,7 @@ func NewPullRequestHandler(prService *service.PullRequestService) *PullRequestHa
 func (h *PullRequestHandler) CreatePullRequest(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var query model.PullRequestShort
+	var query dto.PullRequestQuery
 	if err := c.BindJSON(&query); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

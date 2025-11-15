@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.PullRequestShort"
+                            "$ref": "#/definitions/dto.PullRequestQuery"
                         }
                     }
                 ],
@@ -357,6 +357,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/team/kill": {
+            "post": {
+                "description": "set users status to not active by a given team name",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "deactivate all users in team",
+                "parameters": [
+                    {
+                        "description": "team_name",
+                        "name": "team_name",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.TeamName"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Team"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users/getReview": {
             "get": {
                 "consumes": [
@@ -546,6 +598,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.PullRequestQuery": {
+            "type": "object",
+            "properties": {
+                "author_id": {
+                    "type": "string"
+                },
+                "pull_request_id": {
+                    "type": "string"
+                },
+                "pull_request_name": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.StatusQuery": {
             "type": "object",
             "properties": {
@@ -553,6 +619,14 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.TeamName": {
+            "type": "object",
+            "properties": {
+                "team_name": {
                     "type": "string"
                 }
             }

@@ -52,6 +52,13 @@ func (h *UserHandler) SetIsUserActive(c *gin.Context) {
 		return
 	}
 
+	if query.IsActive == false {
+		err = h.prService.ReassignReviewsAfterDeath(ctx, query.UserId)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
 	response := dto.UserResponse{*user}
 	c.IndentedJSON(http.StatusOK, response)
 }
@@ -147,5 +154,35 @@ func (h *UserHandler) GetTeam(c *gin.Context) {
 		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
 		return
 	}
+	c.IndentedJSON(http.StatusOK, team)
+}
+
+// KillTeam godoc
+// @Summary      deactivate all users in team
+// @Description  set users status to not active by a given team name
+// @Tags         teams
+// @Accept       json
+// @Produce      json
+// @Param        team_name body dto.TeamName true "team_name"
+// @Success      200  {object}   model.Team
+// @Failure      400  {object}  model.ErrorResponse
+// @Failure      404  {object}  model.ErrorResponse
+// @Failure      500  {object}  model.ErrorResponse
+// @Router       /team/kill [post]
+func (h *UserHandler) KillTeam(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var query dto.TeamName
+	if err := c.ShouldBindJSON(&query); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	team, err := h.userService.KillTeam(ctx, query.TeamName)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
+		return
+	}
+
 	c.IndentedJSON(http.StatusOK, team)
 }

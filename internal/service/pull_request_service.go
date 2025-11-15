@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"pr-assignment/internal/adapter/in/http/dto"
 	"pr-assignment/internal/adapter/out/repository"
 	"pr-assignment/internal/model"
 	"time"
@@ -13,21 +14,28 @@ type PullRequestService struct {
 	prReviewersRepository *repository.PrReviewersRepository
 	teamRepository        *repository.TeamRepository
 	userRepository        *repository.UserRepository
+	userService           *UserService
 }
 
 func NewPullRequestService(prRepo *repository.PullRequestRepository, prReviewsRepo *repository.PrReviewersRepository,
-	teamRepo *repository.TeamRepository, userRepo *repository.UserRepository) *PullRequestService {
+	teamRepo *repository.TeamRepository, userRepo *repository.UserRepository, userService *UserService) *PullRequestService {
 
-	return &PullRequestService{prRepo, prReviewsRepo, teamRepo, userRepo}
+	return &PullRequestService{prRepo, prReviewsRepo,
+		teamRepo, userRepo, userService}
 }
 
-func (s *PullRequestService) CreatePR(ctx context.Context, pullRequest model.PullRequestShort) (*model.PullRequest, error) {
-	_, err := s.userRepository.GetUserById(ctx, pullRequest.AuthorId)
+func (s *PullRequestService) CreatePR(ctx context.Context, prBody dto.PullRequestQuery) (*model.PullRequest, error) {
+	_, err := s.userRepository.GetUserById(ctx, prBody.AuthorId)
 	if err != nil {
 		return nil, err
 	}
 
-	pullRequest.Status = model.CREATED
+	pullRequest := model.PullRequestShort{
+		PullRequestId:   prBody.PullRequestId,
+		PullRequestName: prBody.PullRequestName,
+		AuthorId:        prBody.AuthorId,
+		Status:          model.CREATED,
+	}
 	pr := model.PullRequest{
 		PullRequestShort:  pullRequest,
 		AssignedReviewers: make([]string, 0),
@@ -73,14 +81,14 @@ func (s *PullRequestService) ChangeReviewer(ctx context.Context, prId string, ol
 	reviewers, err := s.prReviewersRepository.GetReviewers(ctx, prId)
 	fmt.Println(reviewers)
 
-	if !s.inReviewers(ctx, reviewers, oldReviewerId) {
+	if !s.inReviewers(reviewers, oldReviewerId) {
 		return nil, model.NewError(model.NOT_ASSIGNED, "Old reviewer was not assigned to PR")
 	}
 
 	var newReviewerId string
 	newReviewerId = oldReviewerId
 	for _, userId := range teammates {
-		res, _ := s.checkAllowedToReview(ctx, reviewers, pullRequest.AuthorId, userId)
+		res, _ := s.checkAllowedToReview(reviewers, pullRequest.AuthorId, userId)
 
 		if res {
 			newReviewerId = userId
@@ -144,4 +152,18 @@ func (s *PullRequestService) GetPRsByUser(ctx context.Context, userId string) ([
 		prs = append(prs, pr)
 	}
 	return prs, nil
+}
+
+func (s *PullRequestService) ReassignReviewsAfterDeath(ctx context.Context, deadReviewerId string) error {
+	pullRequestsIds, err := s.prReviewersRepository.GetPRsByUser(ctx, deadReviewerId)
+	if err != nil {
+		return err
+	}
+	for _, prId := range pullRequestsIds {
+		_, err := s.ChangeReviewer(ctx, prId, deadReviewerId)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

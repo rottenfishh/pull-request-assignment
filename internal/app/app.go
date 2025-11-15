@@ -35,8 +35,10 @@ func NewServer(prHandler *handler.PullRequestHandler, userHandler *handler.UserH
 func (s *Server) RunServer(ctx context.Context) error {
 	router := gin.Default()
 	router.Use(gin.Recovery())
+
 	router.GET("/team/get", s.userHandler.GetTeam)
 	router.POST("/team/add", s.userHandler.AddTeam)
+	router.POST("/team/kill", s.userHandler.KillTeam)
 
 	router.POST("/users/setIsActive", s.userHandler.SetIsUserActive)
 	router.GET("/users/getReview", s.userHandler.GetReviews)

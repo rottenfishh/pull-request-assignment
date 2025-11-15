@@ -50,7 +50,7 @@ func (r *TeamRepository) GetTeamId(ctx context.Context, teamName string) (string
 	var teamId string
 	err := queryRow.Scan(&teamId)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", model.NewError(model.NOT_FOUND, "%s team table not found", teamName)
+		return "", model.NewError(model.NOT_FOUND, "team %s not found", teamName)
 	}
 	if err != nil {
 		return "", err

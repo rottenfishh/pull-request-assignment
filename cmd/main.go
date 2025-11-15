@@ -2,46 +2,37 @@ package main
 
 import (
 	"context"
+	"log"
 	_ "pr-assignment/docs"
-	"pr-assignment/internal/adapter/in/http/handler"
-	"pr-assignment/internal/adapter/out/repository"
 	"pr-assignment/internal/app"
 	"pr-assignment/internal/app/config/db"
-	"pr-assignment/internal/service"
+	"pr-assignment/internal/app/config/env"
+	"pr-assignment/internal/app/config/init_structs"
 )
 
 func main() {
 	ctx := context.Background()
-	dsn := "dsn"
 
-	database, err := db.NewDb(ctx, dsn)
+	configDb, err := env.LoadConfigEnv()
 	if err != nil {
-		panic(err)
+		log.Fatalf("unable to load config: %e", err)
 	}
+
+	database, err := db.InitDatabase(ctx, *configDb)
+	if err != nil {
+		log.Fatalf("unable to init database: %e", err)
+	}
+
 	defer database.Pool.Close()
 
-	err = database.RunMigrations()
-	if err != nil {
-		panic(err)
-	}
+	repos := init_structs.InitRepositories(database.Pool)
+	services := init_structs.InitServices(repos)
+	handlers := init_structs.InitHandlers(services)
 
-	teamRepo := repository.NewTeamRepository(database.Pool)
-	prRepo := repository.NewPullRequestRepository(database.Pool)
-	userRepo := repository.NewUserRepository(database.Pool)
-	prReviewersRepo := repository.NewPrReviewersRepository(database.Pool)
-
-	prService := service.NewPullRequestService(prRepo, prReviewersRepo, teamRepo, userRepo)
-	userService := service.NewUserService(userRepo, teamRepo)
-	statService := service.NewStatService(prReviewersRepo, userRepo, prRepo)
-
-	prHandler := handler.NewPullRequestHandler(prService)
-	userHandler := handler.NewUserHandler(userService, prService)
-	statHandler := handler.NewStatHandler(statService)
-
-	server := app.NewServer(prHandler, userHandler, statHandler)
+	server := app.NewServer(handlers.PullRequestHandler, handlers.UserHandler, handlers.StatHandler)
 
 	err = server.RunServer(ctx)
 	if err != nil {
-		panic(err)
+		log.Fatalf("unable to run server: %e", err)
 	}
 }

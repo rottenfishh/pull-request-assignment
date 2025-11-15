@@ -55,11 +55,25 @@ definitions:
       pull_request_id:
         type: string
     type: object
+  dto.PullRequestQuery:
+    properties:
+      author_id:
+        type: string
+      pull_request_id:
+        type: string
+      pull_request_name:
+        type: string
+    type: object
   dto.StatusQuery:
     properties:
       is_active:
         type: boolean
       user_id:
+        type: string
+    type: object
+  dto.TeamName:
+    properties:
+      team_name:
         type: string
     type: object
   dto.UserPrsResponse:
@@ -182,7 +196,7 @@ paths:
         name: query
         required: true
         schema:
-          $ref: '#/definitions/model.PullRequestShort'
+          $ref: '#/definitions/dto.PullRequestQuery'
       produces:
       - application/json
       responses:
@@ -392,6 +406,40 @@ paths:
           schema:
             $ref: '#/definitions/model.ErrorResponse'
       summary: get existing team
+      tags:
+      - teams
+  /team/kill:
+    post:
+      consumes:
+      - application/json
+      description: set users status to not active by a given team name
+      parameters:
+      - description: team_name
+        in: body
+        name: team_name
+        required: true
+        schema:
+          $ref: '#/definitions/dto.TeamName'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Team'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: deactivate all users in team
       tags:
       - teams
   /users/getReview:

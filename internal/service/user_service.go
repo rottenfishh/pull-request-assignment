@@ -48,7 +48,6 @@ func (s *UserService) AddTeam(ctx context.Context, team model.Team) error {
 }
 
 func (s *UserService) GetTeam(ctx context.Context, teamName string) (*model.Team, error) {
-	fmt.Println("service ", teamName)
 	teamId, err := s.teamRepository.GetTeamId(ctx, teamName)
 
 	if err != nil {
@@ -66,7 +65,7 @@ func (s *UserService) GetTeam(ctx context.Context, teamName string) (*model.Team
 	return team, nil
 }
 
-func (s *PullRequestService) GetActiveTeammatesByUser(ctx context.Context, userId string) ([]string, error) {
+func (s *UserService) GetActiveTeammatesByUser(ctx context.Context, userId string) ([]string, error) {
 	teamId, err := s.userRepository.GetTeamNameByUserId(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -78,4 +77,30 @@ func (s *PullRequestService) GetActiveTeammatesByUser(ctx context.Context, userI
 	}
 
 	return userIds, nil
+}
+
+func (s *UserService) KillTeam(ctx context.Context, teamName string) (*model.Team, error) {
+	teamId, err := s.teamRepository.GetTeamId(ctx, teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	teamMembers, err := s.userRepository.GetActiveUsersByTeam(ctx, teamId)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, member := range teamMembers {
+		_, err = s.userRepository.UpdateUserStatus(ctx, member, false)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	team, err := s.userRepository.GetTeam(ctx, teamId)
+	if err != nil {
+		return nil, err
+	}
+
+	return team, nil
 }
