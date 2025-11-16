@@ -40,25 +40,25 @@ func (r *TeamRepository) Exists(ctx context.Context, teamName string) (bool, err
 	return true, nil
 }
 
-func (r *TeamRepository) GetTeamId(ctx context.Context, teamName string) (string, error) {
+func (r *TeamRepository) GetTeamID(ctx context.Context, teamName string) (string, error) {
 	sql := `
            SELECT team_id FROM teams
            WHERE team_name = $1`
 
 	queryRow := r.pool.QueryRow(ctx, sql, teamName)
 
-	var teamId string
-	err := queryRow.Scan(&teamId)
+	var teamID string
+	err := queryRow.Scan(&teamID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", model.NewError(model.NOT_FOUND, "team %s not found", teamName)
+		return "", model.NewError(model.NotFound, "team %s not found", teamName)
 	}
 	if err != nil {
 		return "", err
 	}
-	return teamId, nil
+	return teamID, nil
 }
 
-func (r *TeamRepository) AddTeam(ctx context.Context, newTeam model.Team, teamId uuid.UUID) error {
+func (r *TeamRepository) AddTeam(ctx context.Context, newTeam model.Team, teamID uuid.UUID) error {
 	sql := `
            INSERT INTO teams (team_id, team_name) VALUES ($1, $2)`
 
@@ -69,10 +69,12 @@ func (r *TeamRepository) AddTeam(ctx context.Context, newTeam model.Team, teamId
 	}
 
 	if teamExists {
-		return model.NewError(model.TEAM_EXISTS, "Team %s already exists", newTeam.TeamName)
+		return model.NewError(model.TeamExists, "Team %s already exists", newTeam.TeamName)
 	}
 
-	_, err = r.pool.Exec(ctx, sql, teamId, newTeam.TeamName)
-
+	_, err = r.pool.Exec(ctx, sql, teamID, newTeam.TeamName)
+	if err != nil {
+		return err
+	}
 	return nil
 }

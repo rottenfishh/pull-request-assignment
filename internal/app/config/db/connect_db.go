@@ -7,8 +7,8 @@ import (
 	"pr-assignment/internal/app/config/env"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres" // to connect to db
+	_ "github.com/golang-migrate/migrate/v4/source/file"       // to run migrations
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

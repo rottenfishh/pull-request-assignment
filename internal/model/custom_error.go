@@ -5,19 +5,18 @@ import "fmt"
 type ErrCode string
 
 const (
-	TEAM_EXISTS    ErrCode = "TEAM_EXISTS"
-	PR_EXISTS      ErrCode = "PR_EXISTS"
-	PR_MERGED      ErrCode = "PR_MERGED"
-	NOT_ASSIGNED   ErrCode = "NOT_ASSIGNED"
-	NO_CANDIDATE   ErrCode = "NO_CANDIDATE"
-	NOT_FOUND      ErrCode = "NOT_FOUND"
-	INTERNAL_ERROR ErrCode = "INTERNAL_ERROR"
+	TeamExists    ErrCode = "TEAM_EXISTS"
+	PrExists      ErrCode = "PR_EXISTS"
+	PrMerged      ErrCode = "PR_MERGED"
+	NotAssigned   ErrCode = "NOT_ASSIGNED"
+	NoCandidate   ErrCode = "NO_CANDIDATE"
+	NotFound      ErrCode = "NOT_FOUND"
+	InternalError ErrCode = "INTERNAL_ERROR"
 )
 
 type CustomError struct {
 	Message string  `json:"code"`
 	Code    ErrCode `json:"message"`
-	err     error
 }
 
 func (e *CustomError) Error() string {

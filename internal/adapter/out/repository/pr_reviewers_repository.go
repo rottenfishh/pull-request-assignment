@@ -20,11 +20,11 @@ func NewPrReviewersRepository(pool *pgxpool.Pool) *PrReviewersRepository {
 	return &PrReviewersRepository{pool: pool}
 }
 
-func (r *PrReviewersRepository) AddReviewer(ctx context.Context, pullRequestId string, reviewerId string) error {
+func (r *PrReviewersRepository) AddReviewer(ctx context.Context, pullRequestID string, reviewerID string) error {
 	sql := `
          INSERT INTO pr_reviewers (pull_request_id, reviewer_id) VALUES ($1, $2);`
 
-	_, err := r.pool.Exec(ctx, sql, pullRequestId, reviewerId)
+	_, err := r.pool.Exec(ctx, sql, pullRequestID, reviewerID)
 	if err != nil {
 		return err
 	}
@@ -32,13 +32,14 @@ func (r *PrReviewersRepository) AddReviewer(ctx context.Context, pullRequestId s
 	return nil
 }
 
-func (r *PrReviewersRepository) ChangeReviewer(ctx context.Context, pullRequestId string, oldReviewerId string, newReviewerId string) error {
+func (r *PrReviewersRepository) ChangeReviewer(ctx context.Context, pullRequestID string, oldReviewerID string,
+	newReviewerID string) error {
 	sql := `
         UPDATE pr_reviewers
         SET reviewer_id = $2
         WHERE pull_request_id = $1 AND reviewer_id = $3`
 
-	_, err := r.pool.Exec(ctx, sql, pullRequestId, newReviewerId, oldReviewerId)
+	_, err := r.pool.Exec(ctx, sql, pullRequestID, newReviewerID, oldReviewerID)
 	if err != nil {
 		return err
 	}
@@ -46,41 +47,41 @@ func (r *PrReviewersRepository) ChangeReviewer(ctx context.Context, pullRequestI
 	return nil
 }
 
-func (r *PrReviewersRepository) GetReviewers(ctx context.Context, pullRequestId string) ([]string, error) {
+func (r *PrReviewersRepository) GetReviewers(ctx context.Context, pullRequestID string) ([]string, error) {
 	sql := `
         SELECT reviewer_id FROM pr_reviewers
         WHERE pull_request_id = $1`
 
-	rows, err := r.pool.Query(ctx, sql, pullRequestId)
+	rows, err := r.pool.Query(ctx, sql, pullRequestID)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	var reviewersIds []string
-	var reviewerId string
+	var reviewersIDs []string
+	var reviewerID string
 
 	for rows.Next() {
-		err = rows.Scan(&reviewerId)
+		err = rows.Scan(&reviewerID)
 		if err != nil {
 			return nil, err
 		}
-		reviewersIds = append(reviewersIds, reviewerId)
+		reviewersIDs = append(reviewersIDs, reviewerID)
 	}
 
-	if len(reviewersIds) == 0 {
-		return nil, model.NewError(model.NOT_FOUND, "PR reviewers not found")
+	if len(reviewersIDs) == 0 {
+		return nil, model.NewError(model.NotFound, "PR reviewers not found")
 	}
 
-	return reviewersIds, nil
+	return reviewersIDs, nil
 }
 
-func (r *PrReviewersRepository) GetPRsByUser(ctx context.Context, userId string) ([]string, error) {
+func (r *PrReviewersRepository) GetPRsByUser(ctx context.Context, userID string) ([]string, error) {
 	sql := `
         SELECT pull_request_id FROM pr_reviewers
         WHERE reviewer_id = $1`
-	rows, err := r.pool.Query(ctx, sql, userId)
+	rows, err := r.pool.Query(ctx, sql, userID)
 
 	if err != nil {
 		return nil, err
@@ -88,28 +89,28 @@ func (r *PrReviewersRepository) GetPRsByUser(ctx context.Context, userId string)
 
 	defer rows.Close()
 
-	var prIds []string
-	var prId string
+	var prIDs []string
+	var prID string
 
 	for rows.Next() {
-		err = rows.Scan(&prId)
+		err = rows.Scan(&prID)
 
 		if err != nil {
 			return nil, err
 		}
 
-		prIds = append(prIds, prId)
+		prIDs = append(prIDs, prID)
 	}
 
-	if len(prIds) == 0 {
-		return nil, model.NewError(model.NOT_FOUND, "PR reviewers not found")
+	if len(prIDs) == 0 {
+		return nil, model.NewError(model.NotFound, "PR reviewers not found")
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating user rows: %w", err)
 	}
 
-	return prIds, nil
+	return prIDs, nil
 }
 
 // user - number of prs where they are reviewer
@@ -126,14 +127,14 @@ func (r *PrReviewersRepository) GetNumberOfReviewsByUser(ctx context.Context) (m
 
 	usersWithReviewCount := make(map[string]int)
 
-	var reviewerId string
+	var reviewerID string
 	var count int
 	for rows.Next() {
-		err = rows.Scan(&reviewerId, &count)
+		err = rows.Scan(&reviewerID, &count)
 		if err != nil {
 			return nil, err
 		}
-		usersWithReviewCount[reviewerId] = count
+		usersWithReviewCount[reviewerID] = count
 	}
 	return usersWithReviewCount, nil
 }
@@ -146,7 +147,7 @@ func (r *PrReviewersRepository) GetPrsWithReviewer(ctx context.Context) (map[str
 	rows, err := r.pool.Query(ctx, sql)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, model.NewError(model.NOT_FOUND, "PR reviewers not found")
+		return nil, model.NewError(model.NotFound, "PR reviewers not found")
 	}
 
 	if err != nil {
@@ -155,17 +156,17 @@ func (r *PrReviewersRepository) GetPrsWithReviewer(ctx context.Context) (map[str
 
 	defer rows.Close()
 
-	var prId string
+	var prID string
 	var count int
 
 	prsMap := make(map[string]int)
 
 	for rows.Next() {
-		err = rows.Scan(&prId, &count)
+		err = rows.Scan(&prID, &count)
 		if err != nil {
 			return nil, err
 		}
-		prsMap[prId] = count
+		prsMap[prID] = count
 	}
 
 	return prsMap, nil

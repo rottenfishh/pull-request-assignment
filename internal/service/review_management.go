@@ -5,14 +5,14 @@ import (
 	"pr-assignment/internal/model"
 )
 
-func (s *PullRequestService) checkAllowedToReview(reviewers []string, authorId string, newReviewerId string) (bool, error) {
+func (s *PullRequestService) checkAllowedToReview(reviewers []string, authorID string, newReviewerID string) (bool, error) {
 
-	if authorId == newReviewerId {
+	if authorID == newReviewerID {
 		return false, nil
 	}
 
 	for id := range reviewers {
-		if reviewers[id] == newReviewerId {
+		if reviewers[id] == newReviewerID {
 			return false, nil
 		}
 	}
@@ -21,15 +21,15 @@ func (s *PullRequestService) checkAllowedToReview(reviewers []string, authorId s
 }
 
 func (s *PullRequestService) AssignReviewers(ctx context.Context, pr *model.PullRequest) error {
-	teammates, err := s.userService.GetActiveTeammatesByUser(ctx, pr.AuthorId)
+	teammates, err := s.userService.GetActiveTeammatesByUser(ctx, pr.AuthorID)
 	if err != nil {
 		return err
 	}
 
-	for _, userId := range teammates {
-		if userId != pr.AuthorId {
-			pr.AssignedReviewers = append(pr.AssignedReviewers, userId)
-			err = s.prReviewersRepository.AddReviewer(ctx, pr.PullRequestId, userId)
+	for _, userID := range teammates {
+		if userID != pr.AuthorID {
+			pr.AssignedReviewers = append(pr.AssignedReviewers, userID)
+			err = s.prReviewersRepository.AddReviewer(ctx, pr.PullRequestID, userID)
 			if err != nil {
 				return err
 			}
@@ -41,10 +41,10 @@ func (s *PullRequestService) AssignReviewers(ctx context.Context, pr *model.Pull
 	return nil
 }
 
-func (s *PullRequestService) inReviewers(reviewers []string, oldReviewerId string) bool {
+func (s *PullRequestService) inReviewers(reviewers []string, oldReviewerID string) bool {
 	flag := false
 	for id := range reviewers {
-		if reviewers[id] == oldReviewerId {
+		if reviewers[id] == oldReviewerID {
 			flag = true
 			break
 		}

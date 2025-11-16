@@ -8,8 +8,8 @@ const (
 )
 
 type PullRequestShort struct {
-	PullRequestId   string   `json:"pull_request_id"`
+	PullRequestID   string   `json:"pull_request_id"`
 	PullRequestName string   `json:"pull_request_name"`
-	AuthorId        string   `json:"author_id"`
+	AuthorID        string   `json:"author_id"`
 	Status          PRstatus `json:"status"`
 }

@@ -18,24 +18,24 @@ func NewPullRequestRepository(pool *pgxpool.Pool) *PullRequestRepository {
 	return &PullRequestRepository{pool: pool}
 }
 
-func (r *PullRequestRepository) GetPR(ctx context.Context, pullRequestId string) (*model.PullRequest, error) {
+func (r *PullRequestRepository) GetPR(ctx context.Context, pullRequestID string) (*model.PullRequest, error) {
 	sql := `
         SELECT * FROM pull_requests
         WHERE pull_request_id = $1`
 
-	row := r.pool.QueryRow(ctx, sql, pullRequestId)
+	row := r.pool.QueryRow(ctx, sql, pullRequestID)
 
 	pullRequest := model.PullRequest{}
 	err := row.Scan(
-		&pullRequest.PullRequestId,
+		&pullRequest.PullRequestID,
 		&pullRequest.PullRequestName,
-		&pullRequest.AuthorId,
+		&pullRequest.AuthorID,
 		&pullRequest.Status,
 		&pullRequest.CreatedAt,
 		&pullRequest.MergedAt)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, model.NewError(model.NOT_FOUND, "NO SUCH RESOURCE")
+		return nil, model.NewError(model.NotFound, "NO SUCH RESOURCE")
 	}
 
 	if err != nil {
@@ -56,17 +56,17 @@ func (r *PullRequestRepository) CreatePR(ctx context.Context, pr model.PullReque
         `
 
 	pullRequest := model.PullRequest{}
-	err := r.pool.QueryRow(ctx, sql, pr.PullRequestId, pr.PullRequestName,
-		pr.AuthorId, pr.Status, pr.CreatedAt, pr.MergedAt).Scan(
-		&pullRequest.PullRequestId,
+	err := r.pool.QueryRow(ctx, sql, pr.PullRequestID, pr.PullRequestName,
+		pr.AuthorID, pr.Status, pr.CreatedAt, pr.MergedAt).Scan(
+		&pullRequest.PullRequestID,
 		&pullRequest.PullRequestName,
-		&pullRequest.AuthorId,
+		&pullRequest.AuthorID,
 		&pullRequest.Status,
 		&pullRequest.CreatedAt,
 		&pullRequest.MergedAt)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, model.NewError(model.PR_EXISTS, "%s already exists", pr.PullRequestId)
+		return nil, model.NewError(model.PrExists, "%s already exists", pr.PullRequestID)
 	}
 
 	if err != nil {
@@ -76,7 +76,7 @@ func (r *PullRequestRepository) CreatePR(ctx context.Context, pr model.PullReque
 	return &pullRequest, nil
 }
 
-func (r *PullRequestRepository) MergePR(ctx context.Context, pullRequestId string, status model.PRstatus, time time.Time) (*model.PullRequest, error) {
+func (r *PullRequestRepository) MergePR(ctx context.Context, pullRequestID string, status model.PRstatus, time time.Time) (*model.PullRequest, error) {
 	sql := `
         UPDATE pull_requests
         SET status = $3, merged_at = $2
@@ -85,16 +85,16 @@ func (r *PullRequestRepository) MergePR(ctx context.Context, pullRequestId strin
                                   author_id, status, created_at, merged_at`
 
 	pullRequest := model.PullRequest{}
-	err := r.pool.QueryRow(ctx, sql, pullRequestId, time, status).Scan(
-		&pullRequest.PullRequestId,
+	err := r.pool.QueryRow(ctx, sql, pullRequestID, time, status).Scan(
+		&pullRequest.PullRequestID,
 		&pullRequest.PullRequestName,
-		&pullRequest.AuthorId,
+		&pullRequest.AuthorID,
 		&pullRequest.Status,
 		&pullRequest.CreatedAt,
 		&pullRequest.MergedAt)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, model.NewError(model.NOT_FOUND, "%s not found", pullRequestId)
+		return nil, model.NewError(model.NotFound, "%s not found", pullRequestID)
 	}
 	if err != nil {
 		return nil, err
@@ -102,24 +102,24 @@ func (r *PullRequestRepository) MergePR(ctx context.Context, pullRequestId strin
 	return &pullRequest, nil
 }
 
-func (r *PullRequestRepository) GetAuthor(ctx context.Context, pullRequestId string) (string, error) {
+func (r *PullRequestRepository) GetAuthor(ctx context.Context, pullRequestID string) (string, error) {
 	sql := `
         SELECT author_id
         FROM pull_requests
         WHERE pull_request_id = $1`
 
-	row := r.pool.QueryRow(ctx, sql, pullRequestId)
+	row := r.pool.QueryRow(ctx, sql, pullRequestID)
 
-	var authorId string
-	err := row.Scan(&authorId)
+	var authorID string
+	err := row.Scan(&authorID)
 
 	if err != nil {
 		return "", err
 	}
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", model.NewError(model.NOT_FOUND, "Pull request %s not found", pullRequestId)
+		return "", model.NewError(model.NotFound, "Pull request %s not found", pullRequestID)
 	}
 
-	return authorId, nil
+	return authorID, nil
 }

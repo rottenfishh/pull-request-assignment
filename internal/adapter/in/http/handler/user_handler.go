@@ -46,20 +46,20 @@ func (h *UserHandler) SetIsUserActive(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.SetUserActive(ctx, query.UserId, query.IsActive)
+	user, err := h.userService.SetUserActive(ctx, query.UserID, query.IsActive)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	if query.IsActive == false {
-		err = h.prService.ReassignReviewsAfterDeath(ctx, query.UserId)
+	if !query.IsActive {
+		err = h.prService.ReassignReviewsAfterDeath(ctx, query.UserID)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
 
-	response := dto.UserResponse{*user}
+	response := dto.UserResponse{User: *user}
 	c.IndentedJSON(http.StatusOK, response)
 }
 
@@ -77,13 +77,13 @@ func (h *UserHandler) SetIsUserActive(c *gin.Context) {
 func (h *UserHandler) GetReviews(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var userId dto.UserIdQuery
-	if err := c.BindQuery(&userId); err != nil {
+	var userID dto.UserIDQuery
+	if err := c.BindQuery(&userID); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	prs, err := h.prService.GetPRsByUser(ctx, userId.UserId)
+	prs, err := h.prService.GetPRsByUser(ctx, userID.UserID)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
 		return
@@ -91,11 +91,12 @@ func (h *UserHandler) GetReviews(c *gin.Context) {
 
 	responses := []model.PullRequestShort{}
 	for _, pr := range prs {
-		prResponse := model.PullRequestShort{pr.PullRequestId, pr.PullRequestName, pr.AuthorId, pr.Status}
+		prResponse := model.PullRequestShort{PullRequestID: pr.PullRequestID, PullRequestName: pr.PullRequestName,
+			AuthorID: pr.AuthorID, Status: pr.Status}
 		responses = append(responses, prResponse)
 	}
 
-	resp := dto.UserPrsResponse{userId.UserId, responses}
+	resp := dto.UserPrsResponse{UserID: userID.UserID, PullRequests: responses}
 	c.IndentedJSON(http.StatusOK, resp)
 }
 

@@ -1,4 +1,4 @@
-package init_structs
+package initstructs
 
 import (
 	"pr-assignment/internal/service"

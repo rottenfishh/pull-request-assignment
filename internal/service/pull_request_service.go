@@ -25,15 +25,15 @@ func NewPullRequestService(prRepo *repository.PullRequestRepository, prReviewsRe
 }
 
 func (s *PullRequestService) CreatePR(ctx context.Context, prBody dto.PullRequestQuery) (*model.PullRequest, error) {
-	_, err := s.userRepository.GetUserById(ctx, prBody.AuthorId)
+	_, err := s.userRepository.GetUserByID(ctx, prBody.AuthorID)
 	if err != nil {
 		return nil, err
 	}
 
 	pullRequest := model.PullRequestShort{
-		PullRequestId:   prBody.PullRequestId,
+		PullRequestID:   prBody.PullRequestID,
 		PullRequestName: prBody.PullRequestName,
-		AuthorId:        prBody.AuthorId,
+		AuthorID:        prBody.AuthorID,
 		Status:          model.CREATED,
 	}
 	pr := model.PullRequest{
@@ -56,16 +56,16 @@ func (s *PullRequestService) CreatePR(ctx context.Context, prBody dto.PullReques
 	return createdPR, nil
 }
 
-func (s *PullRequestService) ChangeReviewer(ctx context.Context, prId string, oldReviewerId string) (*model.ReassignmentResult, error) {
-	pullRequest, err := s.prRepository.GetPR(ctx, prId)
+func (s *PullRequestService) ChangeReviewer(ctx context.Context, prID string, oldReviewerID string) (*model.ReassignmentResult, error) {
+	pullRequest, err := s.prRepository.GetPR(ctx, prID)
 	if err != nil {
 		return nil, err
 	}
 
 	if pullRequest.Status == model.MERGED {
-		return nil, model.NewError(model.PR_MERGED, "PR already merged")
+		return nil, model.NewError(model.PrMerged, "PR already merged")
 	}
-	teamName, err := s.userRepository.GetTeamNameByUserId(ctx, pullRequest.AuthorId)
+	teamName, err := s.userRepository.GetTeamNameByUserID(ctx, pullRequest.AuthorID)
 
 	if err != nil {
 		fmt.Println(err)
@@ -78,36 +78,38 @@ func (s *PullRequestService) ChangeReviewer(ctx context.Context, prId string, ol
 		return nil, err
 	}
 
-	reviewers, err := s.prReviewersRepository.GetReviewers(ctx, prId)
-	fmt.Println(reviewers)
-
-	if !s.inReviewers(reviewers, oldReviewerId) {
-		return nil, model.NewError(model.NOT_ASSIGNED, "Old reviewer was not assigned to PR")
+	reviewers, err := s.prReviewersRepository.GetReviewers(ctx, prID)
+	if err != nil {
+		return nil, err
 	}
 
-	var newReviewerId string
-	newReviewerId = oldReviewerId
-	for _, userId := range teammates {
-		res, _ := s.checkAllowedToReview(reviewers, pullRequest.AuthorId, userId)
+	if !s.inReviewers(reviewers, oldReviewerID) {
+		return nil, model.NewError(model.NotAssigned, "Old reviewer was not assigned to PR")
+	}
+
+	var newReviewerID string
+	newReviewerID = oldReviewerID
+	for _, userID := range teammates {
+		res, _ := s.checkAllowedToReview(reviewers, pullRequest.AuthorID, userID)
 
 		if res {
-			newReviewerId = userId
+			newReviewerID = userID
 			break
 		}
 	}
 
-	err = s.prReviewersRepository.ChangeReviewer(ctx, prId, oldReviewerId, newReviewerId)
+	err = s.prReviewersRepository.ChangeReviewer(ctx, prID, oldReviewerID, newReviewerID)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
 
-	pr, err := s.prRepository.GetPR(ctx, prId)
+	pr, err := s.prRepository.GetPR(ctx, prID)
 	if err != nil {
 		return nil, err
 	}
 
-	reviewers, err = s.prReviewersRepository.GetReviewers(ctx, prId)
+	reviewers, err = s.prReviewersRepository.GetReviewers(ctx, prID)
 	if err != nil {
 		return nil, err
 	}
@@ -116,20 +118,19 @@ func (s *PullRequestService) ChangeReviewer(ctx context.Context, prId string, ol
 
 	response := model.ReassignmentResult{
 		PullRequest:   *pr,
-		NewReviewerId: newReviewerId,
+		NewReviewerID: newReviewerID,
 	}
 	return &response, nil
 }
 
-func (s *PullRequestService) MergePR(ctx context.Context, pullRequestId string) (*model.PullRequest, error) {
-	createdPR, err := s.prRepository.MergePR(ctx, pullRequestId, model.MERGED, time.Now())
+func (s *PullRequestService) MergePR(ctx context.Context, pullRequestID string) (*model.PullRequest, error) {
+	createdPR, err := s.prRepository.MergePR(ctx, pullRequestID, model.MERGED, time.Now())
 
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
-	reviewers, err := s.prReviewersRepository.GetReviewers(ctx, pullRequestId)
-	fmt.Println(reviewers)
+	reviewers, err := s.prReviewersRepository.GetReviewers(ctx, pullRequestID)
 	if err != nil {
 		return nil, err
 	}
@@ -137,15 +138,15 @@ func (s *PullRequestService) MergePR(ctx context.Context, pullRequestId string) 
 	return createdPR, nil
 }
 
-func (s *PullRequestService) GetPRsByUser(ctx context.Context, userId string) ([]*model.PullRequest, error) {
-	pullRequestsIds, err := s.prReviewersRepository.GetPRsByUser(ctx, userId)
+func (s *PullRequestService) GetPRsByUser(ctx context.Context, userID string) ([]*model.PullRequest, error) {
+	pullRequestsIDs, err := s.prReviewersRepository.GetPRsByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	var prs []*model.PullRequest
-	for _, prId := range pullRequestsIds {
-		pr, err := s.prRepository.GetPR(ctx, prId)
+	for _, prID := range pullRequestsIDs {
+		pr, err := s.prRepository.GetPR(ctx, prID)
 		if err != nil {
 			return nil, err
 		}
@@ -154,13 +155,14 @@ func (s *PullRequestService) GetPRsByUser(ctx context.Context, userId string) ([
 	return prs, nil
 }
 
-func (s *PullRequestService) ReassignReviewsAfterDeath(ctx context.Context, deadReviewerId string) error {
-	pullRequestsIds, err := s.prReviewersRepository.GetPRsByUser(ctx, deadReviewerId)
+func (s *PullRequestService) ReassignReviewsAfterDeath(ctx context.Context, deadReviewerID string) error {
+	pullRequestsIDs, err := s.prReviewersRepository.GetPRsByUser(ctx, deadReviewerID)
 	if err != nil {
 		return err
 	}
-	for _, prId := range pullRequestsIds {
-		_, err := s.ChangeReviewer(ctx, prId, deadReviewerId)
+
+	for _, prID := range pullRequestsIDs {
+		_, err := s.ChangeReviewer(ctx, prID, deadReviewerID)
 		if err != nil {
 			return err
 		}

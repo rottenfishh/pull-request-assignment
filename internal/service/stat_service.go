@@ -25,13 +25,13 @@ func (s *StatService) GetReviewsCountedByUser(ctx context.Context) ([]model.User
 		return nil, err
 	}
 
-	for userId, count := range userMap {
-		user, err := s.userRepo.GetUserById(ctx, userId)
+	for userID, count := range userMap {
+		user, err := s.userRepo.GetUserByID(ctx, userID)
 		if err != nil {
 			return nil, err
 		}
 
-		userReviews = append(userReviews, model.UserReviewsCount{*user, count})
+		userReviews = append(userReviews, model.UserReviewsCount{User: *user, ReviewsCount: count})
 	}
 
 	return userReviews, nil
@@ -45,13 +45,13 @@ func (s *StatService) GetReviewsCountedByPR(ctx context.Context) ([]model.PrRevi
 		return nil, err
 	}
 
-	for prId, count := range prMap {
-		pr, err := s.prRepo.GetPR(ctx, prId)
+	for prID, count := range prMap {
+		pr, err := s.prRepo.GetPR(ctx, prID)
 		if err != nil {
 			return nil, err
 		}
 
-		prReviewers = append(prReviewers, model.PrReviewersCount{pr.PullRequestShort, count})
+		prReviewers = append(prReviewers, model.PrReviewersCount{PullRequest: pr.PullRequestShort, Count: count})
 	}
 
 	return prReviewers, nil

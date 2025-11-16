@@ -16,7 +16,7 @@ func ParseErrorResponse(err error) ErrorResponse {
 		response.Error.Code = customErr.Code
 		response.Error.Message = customErr.Message
 	} else {
-		response.Error.Code = INTERNAL_ERROR
+		response.Error.Code = InternalError
 		response.Error.Message = err.Error()
 	}
 	return response

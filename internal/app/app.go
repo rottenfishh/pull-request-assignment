@@ -1,26 +1,13 @@
 package app
 
 import (
-	"context"
 	"fmt"
-	_ "pr-assignment/docs"
 	"pr-assignment/internal/adapter/in/http/handler"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
-
-//endpoints:
-///team/add
-///team/get
-//
-///users/setIsActive
-///users/getReview
-//
-///pullRequest/create
-///pullRequest/merge
-///pullRequest/reassign
 
 type Server struct {
 	prHandler   *handler.PullRequestHandler
@@ -32,7 +19,7 @@ func NewServer(prHandler *handler.PullRequestHandler, userHandler *handler.UserH
 	return &Server{prHandler: prHandler, userHandler: userHandler, statHandler: statHandler}
 }
 
-func (s *Server) RunServer(ctx context.Context) error {
+func (s *Server) RunServer() error {
 	router := gin.Default()
 	router.Use(gin.Recovery())
 

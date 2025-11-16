@@ -63,7 +63,7 @@ func (h *PullRequestHandler) CreatePullRequest(c *gin.Context) {
 // @Tags         pull requests
 // @Accept       json
 // @Produce      json
-// @Param        query body dto.PullRequestIdQuery true "PR ID"
+// @Param        query body dto.PullRequestIDQuery true "PR ID"
 // @Success      200  {array}   dto.PrMergedResponse
 // @Failure      400  {object}  model.ErrorResponse
 // @Failure      404  {object}  model.ErrorResponse
@@ -71,20 +71,20 @@ func (h *PullRequestHandler) CreatePullRequest(c *gin.Context) {
 // @Router       /pullRequest/merge [post]
 func (h *PullRequestHandler) MergePullRequest(c *gin.Context) {
 	ctx := c.Request.Context()
-	var prIdQuery dto.PullRequestIdQuery
-	if err := c.BindJSON(&prIdQuery); err != nil {
+	var prIDQuery dto.PullRequestIDQuery
+	if err := c.BindJSON(&prIDQuery); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, model.ParseErrorResponse(err))
 		return
 	}
 
-	pr, err := h.prService.MergePR(ctx, prIdQuery.PrId)
+	pr, err := h.prService.MergePR(ctx, prIDQuery.PrID)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
 		return
 	}
 
 	prResponse := dto.PrResponse{PullRequestShort: pr.PullRequestShort, AssignedReviewers: pr.AssignedReviewers}
-	updatedPr := dto.PrMergedResponse{PrMerged: dto.PrMerged{prResponse, pr.MergedAt}}
+	updatedPr := dto.PrMergedResponse{PrMerged: dto.PrMerged{PrResponse: prResponse, MergedAt: pr.MergedAt}}
 
 	c.IndentedJSON(http.StatusOK, updatedPr)
 }
@@ -108,7 +108,7 @@ func (h *PullRequestHandler) ReassignPullRequest(c *gin.Context) {
 		return
 	}
 
-	result, err := h.prService.ChangeReviewer(ctx, query.PullRequestId, query.OldReviewerId)
+	result, err := h.prService.ChangeReviewer(ctx, query.PullRequestID, query.OldReviewerID)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
 		return
@@ -117,7 +117,7 @@ func (h *PullRequestHandler) ReassignPullRequest(c *gin.Context) {
 	prResponse := dto.PrResponse{PullRequestShort: result.PullRequest.PullRequestShort,
 		AssignedReviewers: result.PullRequest.AssignedReviewers}
 
-	prReassignResponse := dto.PrReassignResponse{PrResponse: prResponse, ReplacedBy: result.NewReviewerId}
+	prReassignResponse := dto.PrReassignResponse{PrResponse: prResponse, ReplacedBy: result.NewReviewerID}
 
 	c.IndentedJSON(http.StatusOK, prReassignResponse)
 }
