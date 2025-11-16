@@ -45,7 +45,15 @@ func (h *PullRequestHandler) CreatePullRequest(c *gin.Context) {
 
 	pr, err := h.prService.CreatePR(ctx, query)
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
+		statusCode := http.StatusInternalServerError
+		errResp := model.ParseErrorResponse(err)
+		if errResp.Error.Code == model.NotFound {
+			statusCode = http.StatusNotFound
+		}
+		if errResp.Error.Code == model.PrExists {
+			statusCode = http.StatusConflict
+		}
+		c.IndentedJSON(statusCode, errResp)
 		fmt.Println(err)
 		return
 	}
@@ -79,7 +87,12 @@ func (h *PullRequestHandler) MergePullRequest(c *gin.Context) {
 
 	pr, err := h.prService.MergePR(ctx, prIDQuery.PrID)
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
+		errResp := model.ParseErrorResponse(err)
+		if errResp.Error.Code == model.NotFound {
+			c.IndentedJSON(http.StatusNotFound, model.ParseErrorResponse(err))
+			return
+		}
+		c.IndentedJSON(http.StatusInternalServerError, errResp)
 		return
 	}
 
@@ -110,7 +123,17 @@ func (h *PullRequestHandler) ReassignPullRequest(c *gin.Context) {
 
 	result, err := h.prService.ChangeReviewer(ctx, query.PullRequestID, query.OldReviewerID)
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
+		statusCode := http.StatusInternalServerError
+		errResp := model.ParseErrorResponse(err)
+
+		if errResp.Error.Code == model.NotFound {
+			statusCode = http.StatusNotFound
+		}
+		if errResp.Error.Code == model.PrMerged {
+			statusCode = http.StatusConflict
+		}
+
+		c.IndentedJSON(statusCode, errResp)
 		return
 	}
 

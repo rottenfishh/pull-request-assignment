@@ -10,13 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-///users/setIsActive
-///users/getReview
-//endpoints:
-///team/add
-///team/get
-// do the queries as in spec
-
 type UserHandler struct {
 	userService *service.UserService
 	prService   *service.PullRequestService
@@ -48,7 +41,12 @@ func (h *UserHandler) SetIsUserActive(c *gin.Context) {
 
 	user, err := h.userService.SetUserActive(ctx, query.UserID, query.IsActive)
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		errResp := model.ParseErrorResponse(err)
+		if errResp.Error.Code == model.NotFound {
+			c.IndentedJSON(http.StatusNotFound, model.ParseErrorResponse(err))
+			return
+		}
+		c.IndentedJSON(http.StatusInternalServerError, errResp)
 		return
 	}
 
@@ -85,7 +83,12 @@ func (h *UserHandler) GetReviews(c *gin.Context) {
 
 	prs, err := h.prService.GetPRsByUser(ctx, userID.UserID)
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
+		errResp := model.ParseErrorResponse(err)
+		if errResp.Error.Code == model.NotFound {
+			c.IndentedJSON(http.StatusNotFound, model.ParseErrorResponse(err))
+			return
+		}
+		c.IndentedJSON(http.StatusInternalServerError, errResp)
 		return
 	}
 
@@ -123,6 +126,11 @@ func (h *UserHandler) AddTeam(c *gin.Context) {
 	err := h.userService.AddTeam(ctx, team)
 	if err != nil {
 		fmt.Println(err)
+		errorResp := model.ParseErrorResponse(err)
+		if errorResp.Error.Code == model.TeamExists {
+			c.IndentedJSON(400, model.ParseErrorResponse(err))
+			return
+		}
 		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
 		return
 	}
@@ -152,6 +160,11 @@ func (h *UserHandler) GetTeam(c *gin.Context) {
 	fmt.Println("q", query.TeamName)
 	team, err := h.userService.GetTeam(ctx, query.TeamName)
 	if err != nil {
+		errorResp := model.ParseErrorResponse(err)
+		if errorResp.Error.Code == model.NotFound {
+			c.IndentedJSON(http.StatusNotFound, model.ParseErrorResponse(err))
+			return
+		}
 		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
 		return
 	}
@@ -181,6 +194,11 @@ func (h *UserHandler) KillTeam(c *gin.Context) {
 
 	team, err := h.userService.KillTeam(ctx, query.TeamName)
 	if err != nil {
+		errResp := model.ParseErrorResponse(err)
+		if errResp.Error.Code == model.NotFound {
+			c.IndentedJSON(http.StatusNotFound, model.ParseErrorResponse(err))
+			return
+		}
 		c.IndentedJSON(http.StatusInternalServerError, model.ParseErrorResponse(err))
 		return
 	}

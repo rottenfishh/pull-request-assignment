@@ -21,7 +21,7 @@ func NewTeamRepository(pool *pgxpool.Pool) *TeamRepository {
 
 func (r *TeamRepository) Exists(ctx context.Context, teamName string) (bool, error) {
 	sql := `
-           SELECT team_name FROM teams
+           SELECT team_name FROM public.teams
            WHERE team_name = $1`
 	fmt.Println("team name " + teamName)
 	var name string
@@ -42,7 +42,7 @@ func (r *TeamRepository) Exists(ctx context.Context, teamName string) (bool, err
 
 func (r *TeamRepository) GetTeamID(ctx context.Context, teamName string) (string, error) {
 	sql := `
-           SELECT team_id FROM teams
+           SELECT team_id FROM public.teams
            WHERE team_name = $1`
 
 	queryRow := r.pool.QueryRow(ctx, sql, teamName)
@@ -60,7 +60,7 @@ func (r *TeamRepository) GetTeamID(ctx context.Context, teamName string) (string
 
 func (r *TeamRepository) AddTeam(ctx context.Context, newTeam model.Team, teamID uuid.UUID) error {
 	sql := `
-           INSERT INTO teams (team_id, team_name) VALUES ($1, $2)`
+           INSERT INTO public.teams (team_id, team_name) VALUES ($1, $2)`
 
 	teamExists, err := r.Exists(ctx, newTeam.TeamName)
 

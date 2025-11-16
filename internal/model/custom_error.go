@@ -5,6 +5,7 @@ import "fmt"
 type ErrCode string
 
 const (
+	DefaultError  ErrCode = "SOME_ERROR"
 	TeamExists    ErrCode = "TEAM_EXISTS"
 	PrExists      ErrCode = "PR_EXISTS"
 	PrMerged      ErrCode = "PR_MERGED"
@@ -15,8 +16,8 @@ const (
 )
 
 type CustomError struct {
-	Message string  `json:"code"`
-	Code    ErrCode `json:"message"`
+	Message string  `json:"message"`
+	Code    ErrCode `json:"code"`
 }
 
 func (e *CustomError) Error() string {

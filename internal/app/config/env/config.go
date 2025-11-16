@@ -11,6 +11,7 @@ type ConfigDb struct {
 	DbUsername string `env:"DB_USERNAME,required"`
 	DbPassword string `env:"DB_PASSWORD,required"`
 	DbURL      string `env:"DB_URL,required"`
+	DbName     string `env:"DB_NAME,required"`
 }
 
 func LoadConfigEnv() (*ConfigDb, error) {

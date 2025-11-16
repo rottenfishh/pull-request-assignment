@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"pr-assignment/internal/app/config/env"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -18,8 +19,8 @@ type DB struct {
 }
 
 func InitDatabase(ctx context.Context, config env.ConfigDb) (*DB, error) {
-	dsn := fmt.Sprintf("postgres://%s:%s@%s?sslmode=disable", config.DbUsername, config.DbPassword, config.DbURL)
-
+	dsn := "postgres://postgres:postgres@db:5432/pr_assignment?sslmode=disable"
+	log.Printf("dsn=%s", dsn)
 	db := &DB{DSN: dsn}
 
 	err := db.connectDB(ctx)
@@ -27,9 +28,12 @@ func InitDatabase(ctx context.Context, config env.ConfigDb) (*DB, error) {
 		return nil, err
 	}
 
-	err = db.RunMigrations()
-	if err != nil {
-		return nil, err
+	runMigrations := false
+	if runMigrations { // for running migrations in go code locally
+		err = db.RunMigrations()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return db, nil
