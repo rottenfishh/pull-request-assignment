@@ -19,21 +19,14 @@ type DB struct {
 }
 
 func InitDatabase(ctx context.Context, config env.ConfigDb) (*DB, error) {
-	dsn := "postgres://postgres:postgres@db:5432/pr_assignment?sslmode=disable"
+	dsn := fmt.Sprintf("postgres://%s:%s@db:5432/%s?sslmode=disable", config.DbUsername,
+		config.DbPassword, config.DbName)
 	log.Printf("dsn=%s", dsn)
 	db := &DB{DSN: dsn}
 
 	err := db.connectDB(ctx)
 	if err != nil {
 		return nil, err
-	}
-
-	runMigrations := false
-	if runMigrations { // for running migrations in go code locally
-		err = db.RunMigrations()
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return db, nil

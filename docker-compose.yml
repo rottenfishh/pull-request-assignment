@@ -4,9 +4,9 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD:  postgres
-      POSTGRES_DB: pr_assignment
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD:  ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     healthcheck:
@@ -35,8 +35,6 @@ services:
         condition: service_healthy
     volumes:
       - ./database/migrations/:/migrations
-
-    command:
-      - "-path=/migrations/"
-      - "-database=postgres://postgres:postgres@db/pr_assignment?sslmode=disable"
-      - "up"
+    env_file:
+      - .env
+    command: ["-path", "/migrations/", "-database", "postgres://${DB_USERNAME}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable", "up"]
