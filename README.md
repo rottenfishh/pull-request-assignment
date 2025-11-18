@@ -5,11 +5,11 @@
 
 Склонируйте репозиторий и перейдите в директорию проекта
 
-```
-git clone git@github.com:rottenfishh/pr-assignment.git
 
-cd pr-assignment
-```
+`git clone git@github.com:rottenfishh/pull-request-assignment.git`
+
+`cd pull-request-assignment`
+
 # Локальный запуск: 
 
 Запустите Makefile из корня проекта: `make`
